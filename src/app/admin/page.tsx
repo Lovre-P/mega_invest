@@ -18,24 +18,17 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     try {
-      // Call our API route to authenticate the user
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      // Import the authenticateAdmin action dynamically to avoid issues with server components
+      const { authenticateAdmin } = await import('@/app/actions');
 
-      const data = await response.json();
+      // Call our server action to authenticate the user
+      const result = await authenticateAdmin({ email, password });
 
-      if (response.ok) {
-        // Store user info in localStorage or sessionStorage
-        // In a real app, you'd use a more secure method like HttpOnly cookies
-        sessionStorage.setItem('user', JSON.stringify(data.user));
+      if (result.success) {
+        // Redirect to the dashboard
         router.push("/admin/dashboard");
       } else {
-        setError(data.error || "Invalid email or password");
+        setError(result.message || "Invalid email or password");
       }
     } catch (error) {
       setError("An error occurred during login");

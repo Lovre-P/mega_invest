@@ -54,12 +54,22 @@ export default function AdminLayout({
                 <Link
                   href="/admin/investments"
                   className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${
-                    pathname.startsWith("/admin/investments")
+                    pathname.startsWith("/admin/investments") && !pathname.startsWith("/admin/pending-investments")
                       ? "border-b-2 border-black text-gray-900"
                       : "border-b-2 border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                   }`}
                 >
                   Investments
+                </Link>
+                <Link
+                  href="/admin/pending-investments"
+                  className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${
+                    pathname.startsWith("/admin/pending-investments")
+                      ? "border-b-2 border-black text-gray-900"
+                      : "border-b-2 border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  }`}
+                >
+                  Pending Investments
                 </Link>
                 <Link
                   href="/admin/users"

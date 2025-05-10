@@ -1,10 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { use } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
-export default function InvestmentDetailPage({ params }: { params: { id: string } }) {
+export default function InvestmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  // Unwrap params using React.use()
+  const resolvedParams = use(params);
+  const id = resolvedParams.id;
+
   const [investment, setInvestment] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -13,9 +18,9 @@ export default function InvestmentDetailPage({ params }: { params: { id: string 
     const fetchInvestment = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`/api/investments/${params.id}`);
+        const response = await fetch(`/api/investments/${id}`);
         const data = await response.json();
-        
+
         if (response.ok) {
           setInvestment(data.investment);
         } else {
@@ -28,9 +33,9 @@ export default function InvestmentDetailPage({ params }: { params: { id: string 
         setIsLoading(false);
       }
     };
-    
+
     fetchInvestment();
-  }, [params.id]);
+  }, [id]);
 
   if (isLoading) {
     return (

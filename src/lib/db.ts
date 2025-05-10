@@ -1,5 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import { writeJSONWithLock, readJSONWithLock } from './db-lock';
+import { backupFile } from './backup';
+import { InvestmentStatus, Investment, User, Lead } from './db-query';
 
 // Define the paths to our JSON files
 const investmentsPath = path.join(process.cwd(), 'src/data/investments.json');
@@ -9,8 +12,20 @@ const leadsPath = path.join(process.cwd(), 'src/data/leads.json');
 // Helper function to read JSON data
 export function readData(filePath: string) {
   try {
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      console.error(`File does not exist: ${filePath}`);
+      return null;
+    }
+
     const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data);
+
+    try {
+      return JSON.parse(data);
+    } catch (parseError) {
+      console.error(`Error parsing JSON from ${filePath}:`, parseError);
+      return null;
+    }
   } catch (error) {
     console.error(`Error reading file from ${filePath}:`, error);
     return null;
@@ -20,6 +35,15 @@ export function readData(filePath: string) {
 // Helper function to write JSON data
 export function writeData(filePath: string, data: any) {
   try {
+    // Create a backup before writing
+    backupFile(path.basename(filePath));
+
+    // Ensure the directory exists
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
     return true;
   } catch (error) {
@@ -28,27 +52,36 @@ export function writeData(filePath: string, data: any) {
   }
 }
 
+// Async versions using file locking for concurrent access safety
+export async function readDataAsync(filePath: string) {
+  return await readJSONWithLock(filePath);
+}
+
+export async function writeDataAsync(filePath: string, data: any) {
+  return await writeJSONWithLock(filePath, data);
+}
+
 // Investment functions
 export function getInvestments() {
   const data = readData(investmentsPath);
   return data ? data.investments : [];
 }
 
-export function getInvestmentById(id: string) {
+export function getInvestmentById(id: string): Investment | undefined {
   const investments = getInvestments();
-  return investments.find((investment: any) => investment.id === id);
+  return investments.find((investment: Investment) => investment.id === id);
 }
 
-export function createInvestment(investment: any) {
+export function createInvestment(investment: Partial<Investment>): boolean {
   const data = readData(investmentsPath);
   if (!data) return false;
 
   // Generate a slug-like ID if not provided
   if (!investment.id) {
     investment.id = investment.title
-      .toLowerCase()
+      ?.toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+      .replace(/(^-|-$)/g, '') || '';
   }
 
   // Add timestamps
@@ -56,35 +89,85 @@ export function createInvestment(investment: any) {
   investment.createdAt = now;
   investment.updatedAt = now;
 
+  // Set default status if not provided
+  if (!investment.status) {
+    investment.status = 'Pending';
+  }
+
   data.investments.push(investment);
   return writeData(investmentsPath, data);
 }
 
-export function updateInvestment(id: string, updatedInvestment: any) {
+export function updateInvestment(id: string, updatedInvestment: Partial<Investment>): boolean {
   const data = readData(investmentsPath);
   if (!data) return false;
 
-  const index = data.investments.findIndex((investment: any) => investment.id === id);
+  const index = data.investments.findIndex((investment: Investment) => investment.id === id);
   if (index === -1) return false;
 
   // Update the timestamp
   updatedInvestment.updatedAt = new Date().toISOString();
-  // Preserve the creation date
+  // Preserve the creation date and other metadata if not provided
   updatedInvestment.createdAt = data.investments[index].createdAt;
+
+  // Preserve submission metadata if not provided
+  if (!updatedInvestment.submittedBy && data.investments[index].submittedBy) {
+    updatedInvestment.submittedBy = data.investments[index].submittedBy;
+  }
+
+  if (!updatedInvestment.submittedAt && data.investments[index].submittedAt) {
+    updatedInvestment.submittedAt = data.investments[index].submittedAt;
+  }
 
   data.investments[index] = { ...data.investments[index], ...updatedInvestment };
   return writeData(investmentsPath, data);
 }
 
-export function deleteInvestment(id: string) {
+export function deleteInvestment(id: string): boolean {
   const data = readData(investmentsPath);
   if (!data) return false;
 
   const initialLength = data.investments.length;
-  data.investments = data.investments.filter((investment: any) => investment.id !== id);
+  data.investments = data.investments.filter((investment: Investment) => investment.id !== id);
 
   if (data.investments.length === initialLength) return false;
   return writeData(investmentsPath, data);
+}
+
+// Investment submission functions
+export function submitInvestment(investment: Partial<Investment>, submitterEmail: string): boolean {
+  // Set submission metadata
+  investment.submittedBy = submitterEmail;
+  investment.submittedAt = new Date().toISOString();
+  investment.status = 'Pending';
+
+  return createInvestment(investment);
+}
+
+export function reviewInvestment(
+  id: string,
+  status: InvestmentStatus,
+  reviewerEmail: string,
+  rejectionReason?: string
+): boolean {
+  const investment = getInvestmentById(id);
+  if (!investment) return false;
+
+  const updates: Partial<Investment> = {
+    status,
+    reviewedBy: reviewerEmail,
+    reviewedAt: new Date().toISOString()
+  };
+
+  // Add rejection reason if provided and status is Rejected
+  if (status === 'Rejected' && rejectionReason) {
+    updates.rejectionReason = rejectionReason;
+  } else if (status !== 'Rejected') {
+    // Remove rejection reason if status is not Rejected
+    updates.rejectionReason = undefined;
+  }
+
+  return updateInvestment(id, updates);
 }
 
 // User functions

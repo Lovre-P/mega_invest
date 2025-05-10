@@ -8,6 +8,7 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState([
     { name: "Total Investments", value: "0" },
     { name: "Active Investments", value: "0" },
+    { name: "Pending Investments", value: "0", highlight: true },
     { name: "Total Users", value: "0" },
     { name: "New Leads (This Month)", value: "0" },
   ]);
@@ -37,6 +38,9 @@ export default function AdminDashboardPage() {
           const activeInvestments = investmentsData.investments.filter(
             (investment: any) => investment.status === 'Active'
           ).length;
+          const pendingInvestments = investmentsData.investments.filter(
+            (investment: any) => investment.status === 'Pending'
+          ).length;
           const totalUsers = usersData.users.length;
 
           // Get current month leads
@@ -53,6 +57,7 @@ export default function AdminDashboardPage() {
           setStats([
             { name: "Total Investments", value: totalInvestments.toString() },
             { name: "Active Investments", value: activeInvestments.toString() },
+            { name: "Pending Investments", value: pendingInvestments.toString(), highlight: true },
             { name: "Total Users", value: totalUsers.toString() },
             { name: "New Leads (This Month)", value: currentMonthLeads.toString() },
           ]);
@@ -119,10 +124,24 @@ export default function AdminDashboardPage() {
           {stats.map((stat) => (
             <div
               key={stat.name}
-              className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6"
+              className={`overflow-hidden rounded-lg ${stat.highlight ? 'bg-black text-white' : 'bg-white'} px-4 py-5 shadow sm:p-6`}
             >
-              <dt className="truncate text-sm font-medium text-gray-500">{stat.name}</dt>
-              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stat.value}</dd>
+              <dt className={`truncate text-sm font-medium ${stat.highlight ? 'text-gray-200' : 'text-gray-500'}`}>
+                {stat.name}
+              </dt>
+              <dd className={`mt-1 text-3xl font-semibold tracking-tight ${stat.highlight ? 'text-white' : 'text-gray-900'}`}>
+                {stat.value}
+              </dd>
+              {stat.highlight && stat.value !== "0" && (
+                <div className="mt-2">
+                  <Link
+                    href="/admin/pending-investments"
+                    className="text-sm font-medium text-gray-200 hover:text-white"
+                  >
+                    View pending →
+                  </Link>
+                </div>
+              )}
             </div>
           ))}
         </dl>

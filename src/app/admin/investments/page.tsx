@@ -80,6 +80,12 @@ export default function AdminInvestmentsPage() {
         </div>
         <div className="mt-4 flex md:ml-4 md:mt-0">
           <Link
+            href="/admin/pending-investments"
+            className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+          >
+            View Pending
+          </Link>
+          <Link
             href="/admin/investments/new"
             className="ml-3 inline-flex items-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
           >
@@ -117,8 +123,9 @@ export default function AdminInvestmentsPage() {
           >
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
             <option value="draft">Draft</option>
-            <option value="archived">Archived</option>
           </select>
         </div>
       </div>
@@ -178,9 +185,13 @@ export default function AdminInvestmentsPage() {
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           investment.status === "Active"
                             ? "bg-green-100 text-green-800"
+                            : investment.status === "Pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : investment.status === "Rejected"
+                            ? "bg-red-100 text-red-800"
                             : investment.status === "Draft"
                             ? "bg-gray-100 text-gray-800"
-                            : "bg-red-100 text-red-800"
+                            : "bg-gray-100 text-gray-800"
                         }`}>
                           {investment.status}
                         </span>

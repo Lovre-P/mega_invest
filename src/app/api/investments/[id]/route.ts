@@ -3,22 +3,25 @@ import { getInvestmentById, updateInvestment, deleteInvestment } from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    // Await the params promise to get the id
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
+
     const investment = getInvestmentById(id);
-    
+
     if (!investment) {
       return NextResponse.json(
         { error: 'Investment not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json({ investment });
   } catch (error) {
-    console.error(`Error fetching investment with ID ${params.id}:`, error);
+    console.error(`Error fetching investment:`, error);
     return NextResponse.json(
       { error: 'Failed to fetch investment' },
       { status: 500 }
@@ -28,12 +31,15 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    // Await the params promise to get the id
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
+
     const updatedInvestment = await request.json();
-    
+
     // Validate required fields
     if (!updatedInvestment.title || !updatedInvestment.description || !updatedInvestment.category) {
       return NextResponse.json(
@@ -41,9 +47,9 @@ export async function PUT(
         { status: 400 }
       );
     }
-    
+
     const success = updateInvestment(id, updatedInvestment);
-    
+
     if (success) {
       return NextResponse.json(
         { message: 'Investment updated successfully' }
@@ -55,7 +61,7 @@ export async function PUT(
       );
     }
   } catch (error) {
-    console.error(`Error updating investment with ID ${params.id}:`, error);
+    console.error(`Error updating investment:`, error);
     return NextResponse.json(
       { error: 'Failed to update investment' },
       { status: 500 }
@@ -65,12 +71,15 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    // Await the params promise to get the id
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
+
     const success = deleteInvestment(id);
-    
+
     if (success) {
       return NextResponse.json(
         { message: 'Investment deleted successfully' }
@@ -82,7 +91,7 @@ export async function DELETE(
       );
     }
   } catch (error) {
-    console.error(`Error deleting investment with ID ${params.id}:`, error);
+    console.error(`Error deleting investment:`, error);
     return NextResponse.json(
       { error: 'Failed to delete investment' },
       { status: 500 }

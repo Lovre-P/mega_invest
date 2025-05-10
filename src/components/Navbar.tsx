@@ -60,12 +60,12 @@ export default function Navbar() {
                 </div>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:items-center">
-                <Link
+                <a
                   href="/admin"
                   className="rounded-md bg-black px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
                 >
                   Admin Login
-                </Link>
+                </a>
               </div>
               <div className="-mr-2 flex items-center sm:hidden">
                 {/* Mobile menu button */}
@@ -101,12 +101,12 @@ export default function Navbar() {
                 </Disclosure.Button>
               ))}
               <div className="mt-4 flex items-center justify-center">
-                <Link
+                <a
                   href="/admin"
                   className="rounded-md bg-black w-full mx-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 text-center"
                 >
                   Admin Login
-                </Link>
+                </a>
               </div>
             </div>
           </Disclosure.Panel>
