@@ -1,49 +1,74 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getLeads, createLead } from '@/lib/db';
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  createBadRequestResponse
+} from '@/lib/api-response';
+import { DatabaseError, ValidationError, ErrorCodes } from '@/lib/error-handler';
 
 export async function GET(request: NextRequest) {
   try {
     const leads = getLeads();
-    return NextResponse.json({ leads });
+    return createSuccessResponse({ leads });
   } catch (error) {
-    console.error('Error fetching leads:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch leads' },
-      { status: 500 }
+    if (error instanceof DatabaseError) {
+      return createErrorResponse(error);
+    }
+
+    // For unknown errors, create a generic error response
+    const dbError = new DatabaseError(
+      'Failed to fetch leads',
+      ErrorCodes.DB_READ_ERROR,
+      error as Error
     );
+    return createErrorResponse(dbError);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const lead = await request.json();
-    
+
     // Validate required fields
     if (!lead.name || !lead.email || !lead.message) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
+      const validationError = new ValidationError(
+        'Missing required fields',
+        'name, email, message'
       );
+      return createBadRequestResponse(validationError.message);
     }
-    
+
     const success = createLead(lead);
-    
+
     if (success) {
-      return NextResponse.json(
-        { message: 'Lead created successfully' },
-        { status: 201 }
+      return createSuccessResponse(
+        { message: 'Lead created successfully', lead: {
+          ...lead,
+          id: `lead-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          status: 'New'
+        }},
+        201
       );
     } else {
-      return NextResponse.json(
-        { error: 'Failed to create lead' },
-        { status: 500 }
+      const dbError = new DatabaseError(
+        'Failed to create lead',
+        ErrorCodes.DB_WRITE_ERROR
       );
+      return createErrorResponse(dbError);
     }
   } catch (error) {
-    console.error('Error creating lead:', error);
-    return NextResponse.json(
-      { error: 'Failed to create lead' },
-      { status: 500 }
+    if (error instanceof DatabaseError) {
+      return createErrorResponse(error);
+    }
+
+    // For unknown errors, create a generic error response
+    const dbError = new DatabaseError(
+      'Failed to create lead',
+      ErrorCodes.DB_WRITE_ERROR,
+      error as Error
     );
+    return createErrorResponse(dbError);
   }
 }

@@ -2,13 +2,42 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import LoadingSpinner from "@/components/LoadingSpinner";
+
+type FormData = {
+  name: string;
+  email: string;
+  phone: string;
+  investmentInterest: string;
+  message: string;
+};
 
 export default function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const onSubmit = async (data: any) => {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isValid, isDirty, touchedFields }
+  } = useForm<FormData>({
+    mode: 'onChange',
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      investmentInterest: '',
+      message: ''
+    }
+  });
+
+  const onSubmit = async (data: FormData) => {
     try {
+      setIsSubmitting(true);
+      setErrorMessage(null);
+
       // Call the API to create a new lead
       const response = await fetch('/api/leads', {
         method: 'POST',
@@ -20,13 +49,16 @@ export default function ContactPage() {
 
       if (response.ok) {
         setIsSubmitted(true);
+        reset();
       } else {
         const errorData = await response.json();
-        alert(`Failed to submit form: ${errorData.error || 'Unknown error'}`);
+        setErrorMessage(errorData.error || 'Failed to submit form. Please try again.');
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-      alert('An error occurred while submitting the form');
+      setErrorMessage('An unexpected error occurred. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -147,31 +179,68 @@ export default function ContactPage() {
                       <p className="mt-2 text-gray-600">
                         Fill out the form below and one of our advisors will contact you shortly.
                       </p>
+                      {errorMessage && (
+                        <div className="mt-4 rounded-md bg-red-50 p-4">
+                          <div className="flex">
+                            <div className="flex-shrink-0">
+                              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="ml-3">
+                              <h3 className="text-sm font-medium text-red-800">There was an error with your submission</h3>
+                              <div className="mt-2 text-sm text-red-700">
+                                <p>{errorMessage}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
                         <div className="space-y-2">
                           <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                            Full name
+                            Full name <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
                             id="name"
                             autoComplete="name"
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-                            {...register("name", { required: "Name is required" })}
+                            className={`block w-full rounded-md shadow-sm focus:ring-black ${
+                              errors.name
+                                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                                : 'border-gray-300 focus:border-black'
+                            }`}
+                            {...register("name", {
+                              required: "Name is required",
+                              minLength: {
+                                value: 2,
+                                message: "Name must be at least 2 characters"
+                              },
+                              maxLength: {
+                                value: 100,
+                                message: "Name cannot exceed 100 characters"
+                              }
+                            })}
                           />
                           {errors.name && (
-                            <p className="mt-1 text-sm text-red-600">{errors.name.message as string}</p>
+                            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
                           )}
                         </div>
+
                         <div className="space-y-2">
                           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                            Email
+                            Email <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="email"
                             id="email"
                             autoComplete="email"
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                            className={`block w-full rounded-md shadow-sm focus:ring-black ${
+                              errors.email
+                                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                                : 'border-gray-300 focus:border-black'
+                            }`}
                             {...register("email", {
                               required: "Email is required",
                               pattern: {
@@ -181,9 +250,10 @@ export default function ContactPage() {
                             })}
                           />
                           {errors.email && (
-                            <p className="mt-1 text-sm text-red-600">{errors.email.message as string}</p>
+                            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
                           )}
                         </div>
+
                         <div className="space-y-2">
                           <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                             Phone number
@@ -192,51 +262,102 @@ export default function ContactPage() {
                             type="tel"
                             id="phone"
                             autoComplete="tel"
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-                            {...register("phone")}
+                            className={`block w-full rounded-md shadow-sm focus:ring-black ${
+                              errors.phone
+                                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                                : 'border-gray-300 focus:border-black'
+                            }`}
+                            {...register("phone", {
+                              pattern: {
+                                value: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
+                                message: "Invalid phone number format"
+                              }
+                            })}
                           />
+                          {errors.phone && (
+                            <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+                          )}
+                          <p className="mt-1 text-xs text-gray-500">Format: (123) 456-7890 or +1 123 456 7890</p>
                         </div>
+
                         <div className="space-y-2">
                           <label htmlFor="investmentInterest" className="block text-sm font-medium text-gray-700">
                             Investment interest
                           </label>
                           <select
                             id="investmentInterest"
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                            className={`block w-full rounded-md shadow-sm focus:ring-black text-gray-900 ${
+                              errors.investmentInterest
+                                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                                : 'border-gray-300 focus:border-black'
+                            }`}
                             {...register("investmentInterest")}
                           >
-                            <option value="">Select an option</option>
-                            <option value="tech-growth-fund">Tech Growth Fund</option>
-                            <option value="real-estate-portfolio">Real Estate Portfolio</option>
-                            <option value="sustainable-energy-fund">Sustainable Energy Fund</option>
-                            <option value="global-markets-fund">Global Markets Fund</option>
-                            <option value="healthcare-innovation-fund">Healthcare Innovation Fund</option>
-                            <option value="income-generation-portfolio">Income Generation Portfolio</option>
-                            <option value="general">General inquiry</option>
+                            <option value="" className="text-gray-900">Select an option</option>
+                            <option value="tech-growth-fund" className="text-gray-900">Tech Growth Fund</option>
+                            <option value="real-estate-portfolio" className="text-gray-900">Real Estate Portfolio</option>
+                            <option value="sustainable-energy-fund" className="text-gray-900">Sustainable Energy Fund</option>
+                            <option value="global-markets-fund" className="text-gray-900">Global Markets Fund</option>
+                            <option value="healthcare-innovation-fund" className="text-gray-900">Healthcare Innovation Fund</option>
+                            <option value="income-generation-portfolio" className="text-gray-900">Income Generation Portfolio</option>
+                            <option value="general" className="text-gray-900">General inquiry</option>
                           </select>
                         </div>
+
                         <div className="space-y-2">
                           <label htmlFor="message" className="block text-sm font-medium text-gray-700">
-                            Message
+                            Message <span className="text-red-500">*</span>
                           </label>
                           <textarea
                             id="message"
                             rows={4}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-                            {...register("message", { required: "Message is required" })}
+                            className={`block w-full rounded-md shadow-sm focus:ring-black ${
+                              errors.message
+                                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                                : 'border-gray-300 focus:border-black'
+                            }`}
+                            {...register("message", {
+                              required: "Message is required",
+                              minLength: {
+                                value: 10,
+                                message: "Message must be at least 10 characters"
+                              },
+                              maxLength: {
+                                value: 1000,
+                                message: "Message cannot exceed 1000 characters"
+                              }
+                            })}
                           />
                           {errors.message && (
-                            <p className="mt-1 text-sm text-red-600">{errors.message.message as string}</p>
+                            <p className="mt-1 text-sm text-red-600">{errors.message.message}</p>
+                          )}
+                          {touchedFields.message && !errors.message && (
+                            <p className="mt-1 text-xs text-gray-500">
+                              {1000 - (document.getElementById('message') as HTMLTextAreaElement)?.value.length || 1000} characters remaining
+                            </p>
                           )}
                         </div>
+
                         <div>
                           <button
                             type="submit"
-                            className="w-full rounded-md bg-black px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-gray-800"
+                            disabled={isSubmitting || !isDirty || !isValid}
+                            className="w-full rounded-md bg-black px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
                           >
-                            Send message
+                            {isSubmitting ? (
+                              <>
+                                <LoadingSpinner size="small" color="white" />
+                                <span className="ml-2">Sending...</span>
+                              </>
+                            ) : (
+                              "Send message"
+                            )}
                           </button>
                         </div>
+
+                        <p className="text-xs text-gray-500 text-center mt-4">
+                          Fields marked with <span className="text-red-500">*</span> are required
+                        </p>
                       </form>
                     </>
                   )}

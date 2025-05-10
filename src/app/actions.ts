@@ -3,13 +3,12 @@
 import {
   submitInvestment,
   reviewInvestment,
-  getUserByEmail,
   getInvestments,
   getInvestmentsByStatus,
   InvestmentStatus,
   Investment
 } from '@/lib/server-db';
-import { cookies } from 'next/headers';
+import { authenticateUser, setSessionCookie, clearSessionCookie } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
 // Type for investment submission form data
@@ -163,52 +162,29 @@ export async function authenticateAdmin(formData: { email: string; password: str
     };
   }
 
-  // Check if the credentials match the admin credentials in .env
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@megainvest.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
+  try {
+    // Use the new authentication utility
+    const user = await authenticateUser(formData.email, formData.password);
 
-  if (formData.email === adminEmail && formData.password === adminPassword) {
-    // In a real app, you would generate a JWT token here
-    // For simplicity, we'll just set a session cookie
-    const cookieStore = cookies();
-    await cookieStore.set('session', adminEmail, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24, // 1 day
-      path: '/',
-    });
+    if (user && (user.role === 'admin' || user.id === 'admin')) {
+      // Set the session cookie
+      await setSessionCookie(user);
 
-    return {
-      success: true,
-      message: 'Authentication successful'
-    };
-  } else {
-    try {
-      // Check if the user exists in the database
-      const user = await getUserByEmail(formData.email);
-
-      if (user && user.password === formData.password && user.role === 'admin') {
-        // Set session cookie
-        const cookieStore = cookies();
-        await cookieStore.set('session', user.email, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 60 * 60 * 24, // 1 day
-          path: '/',
-        });
-
-        return {
-          success: true,
-          message: 'Authentication successful'
-        };
-      }
-    } catch (error) {
-      console.error('Error authenticating user:', error);
+      return {
+        success: true,
+        message: 'Authentication successful'
+      };
     }
 
     return {
       success: false,
       message: 'Invalid email or password'
+    };
+  } catch (error) {
+    console.error('Error authenticating user:', error);
+    return {
+      success: false,
+      message: 'An error occurred during authentication'
     };
   }
 }
@@ -217,8 +193,7 @@ export async function authenticateAdmin(formData: { email: string; password: str
  * Server action to log out an admin user
  */
 export async function logoutAdmin() {
-  const cookieStore = cookies();
-  await cookieStore.delete('session');
+  await clearSessionCookie();
   redirect('/admin');
 }
 

@@ -141,6 +141,24 @@
       "submittedAt": "2025-05-10T09:23:15.000Z",
       "reviewedBy": "admin@megainvest.com",
       "reviewedAt": "2025-05-10T17:19:45.819Z"
+    },
+    {
+      "title": "Urban Infrastructure Bond",
+      "description": "Low-risk investment in municipal infrastructure projects with stable returns.",
+      "expectedReturn": "5-7% annually",
+      "minimumInvestment": "$2000",
+      "category": "Bonds",
+      "risk": "Low",
+      "status": "Rejected",
+      "detailedDescription": "This bond fund invests in essential urban infrastructure projects including water systems, public transportation, and community facilities. Provides stable returns backed by municipal governments.",
+      "id": "urban-infrastructure-bond",
+      "createdAt": "2025-05-08T14:12:33.000Z",
+      "updatedAt": "2025-05-09T10:45:22.000Z",
+      "submittedBy": "john.smith@example.com",
+      "submittedAt": "2025-05-08T14:12:33.000Z",
+      "reviewedBy": "admin@megainvest.com",
+      "reviewedAt": "2025-05-09T10:45:22.000Z",
+      "rejectionReason": "Does not meet our minimum return criteria for new offerings."
     }
   ]
 }

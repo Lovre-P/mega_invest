@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -143,7 +144,14 @@ export default function AdminLoginPage() {
                 disabled={isLoading}
                 className="flex w-full justify-center rounded-md bg-black py-2 px-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:opacity-70"
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <LoadingSpinner size="small" color="white" />
+                    <span className="ml-2">Signing in...</span>
+                  </div>
+                ) : (
+                  "Sign in"
+                )}
               </button>
             </div>
           </form>

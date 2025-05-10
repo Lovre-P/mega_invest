@@ -85,28 +85,36 @@ export default function Navbar() {
           <Disclosure.Panel className="sm:hidden">
             <div className="space-y-1 pb-3 pt-2">
               {navigation.map((item) => (
-                <Disclosure.Button
+                <Link
                   key={item.name}
-                  as="a"
                   href={item.href}
-                  className={classNames(
-                    item.href === currentPage
-                      ? "bg-gray-50 border-l-4 border-black text-black"
-                      : "border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800",
-                    "block py-2 pl-3 pr-4 text-base font-medium"
-                  )}
-                  onClick={() => setCurrentPage(item.href)}
+                  onClick={() => {
+                    setCurrentPage(item.href);
+                    open = false;
+                  }}
                 >
-                  {item.name}
-                </Disclosure.Button>
+                  <Disclosure.Button
+                    as="div"
+                    className={classNames(
+                      item.href === currentPage
+                        ? "bg-gray-50 border-l-4 border-black text-black"
+                        : "border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800",
+                      "block py-3 pl-3 pr-4 text-base font-medium transition-colors duration-200"
+                    )}
+                  >
+                    {item.name}
+                  </Disclosure.Button>
+                </Link>
               ))}
-              <div className="mt-4 flex items-center justify-center">
-                <a
-                  href="/admin"
-                  className="rounded-md bg-black w-full mx-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 text-center"
-                >
-                  Admin Login
-                </a>
+              <div className="mt-6 pb-3 pt-2 border-t border-gray-200">
+                <Link href="/admin">
+                  <Disclosure.Button
+                    as="div"
+                    className="block mx-4 py-3 rounded-md bg-black text-center text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors duration-200"
+                  >
+                    Admin Login
+                  </Disclosure.Button>
+                </Link>
               </div>
             </div>
           </Disclosure.Panel>

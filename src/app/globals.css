@@ -24,3 +24,51 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Global form element styling for better visibility */
+select,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+textarea {
+  color: #000000 !important; /* Black text for better visibility */
+  background-color: white !important;
+  border: 1px solid #d1d5db !important; /* gray-300 */
+}
+
+/* Dropdown options */
+select option {
+  color: #000000 !important; /* Black text */
+  background-color: white !important;
+}
+
+/* Form labels */
+label.text-gray-700 {
+  color: #111827 !important; /* gray-900 for better contrast */
+  font-weight: 500 !important; /* medium font weight */
+}
+
+/* Admin panel specific styles */
+.admin-panel-text {
+  color: #000000 !important;
+}
+
+/* Improve visibility of sort dropdowns */
+.sort-dropdown {
+  color: #000000 !important;
+  background-color: white !important;
+  border: 1px solid #d1d5db !important;
+  padding: 0.5rem !important;
+}
+
+/* Improve visibility of settings tabs */
+button.text-gray-500 {
+  color: #4b5563 !important; /* gray-600 for better visibility */
+}
+
+/* Active tab styling */
+button.text-black {
+  font-weight: 600 !important;
+}

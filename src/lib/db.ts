@@ -3,6 +3,7 @@ import path from 'path';
 import { writeJSONWithLock, readJSONWithLock } from './db-lock';
 import { backupFile } from './backup';
 import { InvestmentStatus, Investment, User, Lead } from './db-query';
+import { DatabaseError, ErrorCodes, logError } from './error-handler';
 
 // Define the paths to our JSON files
 const investmentsPath = path.join(process.cwd(), 'src/data/investments.json');
@@ -14,7 +15,11 @@ export function readData(filePath: string) {
   try {
     // Check if file exists
     if (!fs.existsSync(filePath)) {
-      console.error(`File does not exist: ${filePath}`);
+      const error = new DatabaseError(
+        `File does not exist: ${filePath}`,
+        ErrorCodes.DB_READ_ERROR
+      );
+      logError(error, { filePath });
       return null;
     }
 
@@ -23,11 +28,21 @@ export function readData(filePath: string) {
     try {
       return JSON.parse(data);
     } catch (parseError) {
-      console.error(`Error parsing JSON from ${filePath}:`, parseError);
+      const error = new DatabaseError(
+        `Error parsing JSON from ${filePath}`,
+        ErrorCodes.DB_READ_ERROR,
+        parseError as Error
+      );
+      logError(error, { filePath });
       return null;
     }
   } catch (error) {
-    console.error(`Error reading file from ${filePath}:`, error);
+    const dbError = new DatabaseError(
+      `Error reading file from ${filePath}`,
+      ErrorCodes.DB_READ_ERROR,
+      error as Error
+    );
+    logError(dbError, { filePath });
     return null;
   }
 }
@@ -47,7 +62,12 @@ export function writeData(filePath: string, data: any) {
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
     return true;
   } catch (error) {
-    console.error(`Error writing file to ${filePath}:`, error);
+    const dbError = new DatabaseError(
+      `Error writing file to ${filePath}`,
+      ErrorCodes.DB_WRITE_ERROR,
+      error as Error
+    );
+    logError(dbError, { filePath });
     return false;
   }
 }
