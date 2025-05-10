@@ -50,8 +50,8 @@ yarn install
 3. Create a `.env.local` file with the following variables:
 ```
 # Admin credentials
-ADMIN_EMAIL=admin@megainvest.com
-ADMIN_PASSWORD=password123
+ADMIN_EMAIL=mail@mail.com
+ADMIN_PASSWORD="YourStrongPasswordHere"
 
 # JWT Secret for authentication
 JWT_SECRET=your_jwt_secret_key_change_this_in_production
