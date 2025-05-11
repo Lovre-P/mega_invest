@@ -18,8 +18,6 @@ export default function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [investments, setInvestments] = useState<any[]>([]);
-  const [isLoadingInvestments, setIsLoadingInvestments] = useState(true);
 
   // Get investment parameters from URL if they exist
   const investmentId = searchParams.get('investmentId');
@@ -43,29 +41,6 @@ export default function ContactPage() {
         : ''
     }
   });
-
-  // Fetch active investments for the dropdown
-  useEffect(() => {
-    const fetchInvestments = async () => {
-      try {
-        setIsLoadingInvestments(true);
-        const response = await fetch('/api/investments?status=Active');
-        const data = await response.json();
-
-        if (response.ok) {
-          setInvestments(data.investments);
-        } else {
-          console.error('Failed to fetch investments:', data.error);
-        }
-      } catch (error) {
-        console.error('Error fetching investments:', error);
-      } finally {
-        setIsLoadingInvestments(false);
-      }
-    };
-
-    fetchInvestments();
-  }, []);
 
   // Set form values when URL parameters change
   useEffect(() => {
@@ -342,19 +317,12 @@ export default function ContactPage() {
                             {...register("investmentInterest")}
                           >
                             <option value="" className="text-gray-900">Select an option</option>
-                            {isLoadingInvestments ? (
-                              <option value="" disabled className="text-gray-500">Loading investments...</option>
-                            ) : (
-                              investments.map((investment) => (
-                                <option
-                                  key={investment.id}
-                                  value={investment.id}
-                                  className="text-gray-900"
-                                >
-                                  {investment.title}
-                                </option>
-                              ))
-                            )}
+                            <option value="tech-growth-fund" className="text-gray-900">Tech Growth Fund</option>
+                            <option value="real-estate-portfolio" className="text-gray-900">Real Estate Portfolio</option>
+                            <option value="sustainable-energy-fund" className="text-gray-900">Sustainable Energy Fund</option>
+                            <option value="global-markets-fund" className="text-gray-900">Global Markets Fund</option>
+                            <option value="healthcare-innovation-fund" className="text-gray-900">Healthcare Innovation Fund</option>
+                            <option value="income-generation-portfolio" className="text-gray-900">Income Generation Portfolio</option>
                             <option value="general" className="text-gray-900">General inquiry</option>
                           </select>
                         </div>

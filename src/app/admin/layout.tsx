@@ -30,15 +30,6 @@ export default function AdminLayout({
           <div className="flex h-16 justify-between">
             <div className="flex">
               <div className="flex flex-shrink-0 items-center">
-                <Link href="/">
-                  <Image
-                    src="/mega-invest-logo.svg"
-                    alt="Mega Invest Logo"
-                    width={140}
-                    height={40}
-                    priority
-                  />
-                </Link>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
