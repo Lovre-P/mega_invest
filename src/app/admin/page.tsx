@@ -48,10 +48,10 @@ export default function AdminLoginPage() {
               <Image
                 src="/images/logo-mega-invest-2.png"
                 alt="Mega Invest Logo"
-                width={120}
-                height={40}
+                width={180}
+                height={60}
                 priority
-                className="h-10 w-auto"
+                className="h-15 w-auto"
               />
             </div>
           </Link>
