@@ -277,13 +277,6 @@ export default function EditInvestmentPage({ params }: { params: Promise<{ id: s
           </div>
 
           <div className="pt-8 space-y-6">
-            <div>
-              <h3 className="text-lg font-medium leading-6 text-gray-900">Images</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Manage images for this investment opportunity.
-              </p>
-            </div>
-
             <div className="sm:col-span-6">
               <ImageManager
                 investmentId={id}

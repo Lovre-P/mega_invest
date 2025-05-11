@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { SkeletonGrid } from "@/components/SkeletonLoader";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -124,7 +125,24 @@ export default function InvestmentsPage() {
                   className="block group overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md"
                   key={investment.id}
                 >
-                  <div className="relative h-48 bg-gray-200 group-hover:opacity-90">
+                  <div className="relative h-48 overflow-hidden">
+                    {investment.images && investment.images.length > 0 && investment.mainImageId ? (
+                      <Image
+                        src={investment.images.find(img => img.includes(investment.mainImageId)) || investment.images[0]}
+                        alt={investment.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <Image
+                        src={`https://picsum.photos/seed/${200 + parseInt(investment.id.slice(-3), 36)}/800/400`}
+                        alt={investment.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
                   </div>
                   <div className="p-6">

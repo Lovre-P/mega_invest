@@ -177,7 +177,24 @@ export default function Home() {
             <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {featuredInvestments.map((investment: any) => (
                 <div key={investment.id} className="group overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-lg border border-gray-200">
-                  <div className="relative h-48 bg-gray-200 overflow-hidden">
+                  <div className="relative h-48 overflow-hidden">
+                    {investment.images && investment.images.length > 0 && investment.mainImageId ? (
+                      <Image
+                        src={investment.images.find(img => img.includes(investment.mainImageId)) || investment.images[0]}
+                        alt={investment.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <Image
+                        src={`https://picsum.photos/seed/${100 + parseInt(investment.id.slice(-3), 36)}/800/400`}
+                        alt={investment.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
                   </div>
                   <div className="p-6">
