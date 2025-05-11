@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { use } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import ImageGallery from "@/components/ImageGallery";
 
 export default function InvestmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   // Unwrap params using React.use()
@@ -94,6 +96,29 @@ export default function InvestmentDetailPage({ params }: { params: Promise<{ id:
               {investment.description}
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Investment image gallery */}
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl">
+          {investment.images && investment.images.length > 0 ? (
+            <ImageGallery
+              images={investment.images}
+              mainImageId={investment.mainImageId}
+            />
+          ) : (
+            <div className="relative h-80 sm:h-96 md:h-[400px] overflow-hidden rounded-xl">
+              <Image
+                src={`https://picsum.photos/seed/${300 + parseInt(id.slice(-3), 36)}/1200/600`}
+                alt={investment.title}
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                className="object-cover"
+              />
+            </div>
+          )}
         </div>
       </div>
 

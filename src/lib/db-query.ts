@@ -26,6 +26,8 @@ export interface Investment {
   reviewedBy?: string;
   reviewedAt?: string;
   rejectionReason?: string;
+  images?: string[];
+  mainImageId?: string;
 }
 
 export interface User {

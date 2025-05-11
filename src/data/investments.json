@@ -5,17 +5,21 @@
       "title": "Tech Growth Fund",
       "description": "Invest in a portfolio of high-growth technology companies with strong potential for returns.",
       "expectedReturn": "12-15% annually",
-      "minimumInvestment": "$10,000",
+      "minimumInvestment": "$10000",
       "category": "Technology",
       "risk": "Moderate",
       "status": "Active",
       "detailedDescription": "The Tech Growth Fund focuses on investing in innovative technology companies with high growth potential. Our team of experts carefully selects companies that are at the forefront of technological advancements and have strong business models. This fund is designed for investors who are looking for higher returns and are willing to accept moderate risk.",
       "createdAt": "2023-01-15T10:30:00Z",
-      "updatedAt": "2025-05-11T18:43:12.393Z",
+      "updatedAt": "2025-05-11T21:58:57.212Z",
       "submittedBy": "admin@megainvest.com",
       "submittedAt": "2023-01-15T10:30:00Z",
       "reviewedBy": "admin@megainvest.com",
-      "reviewedAt": "2023-01-15T10:30:00Z"
+      "reviewedAt": "2023-01-15T10:30:00Z",
+      "images": [
+        "/uploads/tech-growth-fund/a1017c80-1193-4b7b-8bf1-afab386c61a0.webp"
+      ],
+      "mainImageId": "a1017c80-1193-4b7b-8bf1-afab386c61a0"
     },
     {
       "id": "real-estate-portfolio",
@@ -119,11 +123,15 @@
       "detailedDescription": "invest big returns big grain smart moey random text insteerted here",
       "id": "bljitkoin",
       "createdAt": "2025-05-05T10:14:33.625Z",
-      "updatedAt": "2025-05-11T19:20:29.865Z",
+      "updatedAt": "2025-05-11T21:56:26.303Z",
       "submittedBy": "user@example.com",
       "submittedAt": "2025-05-05T10:14:33.625Z",
       "reviewedBy": "admin@megainvest.com",
-      "reviewedAt": "2025-05-05T11:30:00.000Z"
+      "reviewedAt": "2025-05-05T11:30:00.000Z",
+      "images": [
+        "/uploads/bljitkoin/a2e0aee6-d6d0-401d-b90a-4f09807c2dc3.jpg"
+      ],
+      "mainImageId": "a2e0aee6-d6d0-401d-b90a-4f09807c2dc3"
     },
     {
       "title": "Green Energy Startup Fund",

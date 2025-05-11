@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { use } from "react";
+import ImageManager from "@/components/admin/ImageManager";
 
 export default function EditInvestmentPage({ params }: { params: Promise<{ id: string }> }) {
   // Unwrap params using React.use()
@@ -27,6 +28,9 @@ export default function EditInvestmentPage({ params }: { params: Promise<{ id: s
     isVisible: true,
   });
 
+  const [images, setImages] = useState<string[]>([]);
+  const [mainImageId, setMainImageId] = useState<string | undefined>(undefined);
+
   // Fetch the investment data
   useEffect(() => {
     const fetchInvestment = async () => {
@@ -37,7 +41,7 @@ export default function EditInvestmentPage({ params }: { params: Promise<{ id: s
 
         if (response.ok) {
           const investment = data.investment;
-          
+
           // Parse expected return (format: "10-15% annually")
           let expectedReturnMin = "";
           let expectedReturnMax = "";
@@ -68,6 +72,16 @@ export default function EditInvestmentPage({ params }: { params: Promise<{ id: s
             detailedDescription: investment.detailedDescription || "",
             isVisible: investment.status === "Active",
           });
+
+          // Set images
+          if (investment.images && Array.isArray(investment.images)) {
+            setImages(investment.images);
+          }
+
+          // Set main image ID
+          if (investment.mainImageId) {
+            setMainImageId(investment.mainImageId);
+          }
         } else {
           setError(data.error || "Failed to fetch investment details");
         }
@@ -120,6 +134,8 @@ export default function EditInvestmentPage({ params }: { params: Promise<{ id: s
         risk: formData.risk,
         status: formData.status,
         detailedDescription: formData.detailedDescription,
+        images,
+        mainImageId,
       };
 
       // Call the API to update the investment
@@ -257,6 +273,27 @@ export default function EditInvestmentPage({ params }: { params: Promise<{ id: s
                   Detailed information about the investment opportunity. This will be displayed on the investment detail page.
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="pt-8 space-y-6">
+            <div>
+              <h3 className="text-lg font-medium leading-6 text-gray-900">Images</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Manage images for this investment opportunity.
+              </p>
+            </div>
+
+            <div className="sm:col-span-6">
+              <ImageManager
+                investmentId={id}
+                images={images}
+                mainImageId={mainImageId}
+                onImagesChange={(newImages, newMainImageId) => {
+                  setImages(newImages);
+                  setMainImageId(newMainImageId);
+                }}
+              />
             </div>
           </div>
 

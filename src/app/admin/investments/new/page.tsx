@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { ArrowUpTrayIcon } from "@heroicons/react/24/outline";
 
 export default function NewInvestmentPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [mainImageId, setMainImageId] = useState<string | undefined>(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -16,7 +23,6 @@ export default function NewInvestmentPage() {
     category: "",
     risk: "Moderate",
     status: "Draft",
-    featuredImage: null,
     detailedDescription: "",
   });
 
@@ -26,6 +32,62 @@ export default function NewInvestmentPage() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      // Validate file type and size
+      const file = files[0];
+
+      if (!file.type.startsWith('image/')) {
+        setUploadError('Only image files are allowed');
+        setIsUploading(false);
+        return;
+      }
+
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        setUploadError('File size exceeds the 5MB limit');
+        setIsUploading(false);
+        return;
+      }
+
+      // Generate a temporary ID for the investment
+      const tempId = 'temp-' + Date.now();
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Create a temporary URL for preview
+      const imageUrl = URL.createObjectURL(file);
+
+      // Add the image to the list
+      const newImages = [...images, imageUrl];
+      setImages(newImages);
+
+      // If this is the first image, set it as the main image
+      if (images.length === 0 && !mainImageId) {
+        setMainImageId(tempId);
+      }
+
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Error handling image:', error);
+      setUploadError(error instanceof Error ? error.message : 'Failed to process image');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +111,8 @@ export default function NewInvestmentPage() {
         risk: formData.risk,
         status: formData.status,
         detailedDescription: formData.detailedDescription,
+        images: images,
+        mainImageId: mainImageId,
       };
 
       // Call the API to create the investment
@@ -300,45 +364,71 @@ export default function NewInvestmentPage() {
 
           <div className="pt-8 space-y-6">
             <div>
-              <h3 className="text-base font-semibold leading-6 text-gray-900">Featured Image</h3>
+              <h3 className="text-base font-semibold leading-6 text-gray-900">Images</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Upload an image that represents this investment opportunity.
+                Upload images for this investment opportunity. The first image will be used as the main image.
               </p>
             </div>
 
             <div className="sm:col-span-6">
-              <label htmlFor="featuredImage" className="block text-sm font-medium leading-6 text-gray-900">
-                Image
+              <label htmlFor="images" className="block text-sm font-medium leading-6 text-gray-900">
+                Upload Images
               </label>
-              <div className="mt-2 flex justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6">
-                <div className="space-y-1 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    stroke="currentColor"
-                    fill="none"
-                    viewBox="0 0 48 48"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="file-upload"
-                      className="relative cursor-pointer rounded-md bg-white font-medium text-black focus-within:outline-none focus-within:ring-2 focus-within:ring-black focus-within:ring-offset-2 hover:text-gray-700"
-                    >
-                      <span>Upload a file</span>
-                      <input id="file-upload" name="file-upload" type="file" className="sr-only" />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                </div>
+              <div className="mt-2 flex items-center space-x-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*"
+                  className="hidden"
+                  disabled={isUploading}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
+                  {isUploading ? 'Uploading...' : 'Upload Image'}
+                </button>
               </div>
+              {uploadError && (
+                <p className="mt-2 text-sm text-red-500">{uploadError}</p>
+              )}
+
+              {/* Image preview */}
+              {images.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {images.map((image, index) => (
+                    <div
+                      key={index}
+                      className="relative group rounded-md overflow-hidden border-2 border-gray-200"
+                    >
+                      <div className="relative h-32 w-full">
+                        <Image
+                          src={image}
+                          alt={`Investment image ${index + 1}`}
+                          fill
+                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                          className="object-cover"
+                        />
+                      </div>
+
+                      {/* Main image indicator */}
+                      {index === 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-indigo-500 text-white text-xs text-center py-1">
+                          Main Image
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <p className="mt-2 text-xs text-gray-500">
+                Note: Images will be permanently associated with the investment after saving. You can add more images or set a main image later.
+              </p>
             </div>
           </div>
         </div>
