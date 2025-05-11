@@ -31,7 +31,7 @@ export default function Navbar() {
                   <Link href="/">
                     <div className="border-2 border-black p-1">
                       <Image
-                        src="/mega-invest-logo.svg"
+                        src="/images/logo-mega-invest-2.png"
                         alt="Mega Invest Logo"
                         width={120}
                         height={40}

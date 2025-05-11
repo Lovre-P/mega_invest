@@ -46,7 +46,7 @@ export default function AdminLoginPage() {
           <Link href="/">
             <div className="border-2 border-black p-1 inline-block">
               <Image
-                src="/mega-invest-logo.svg"
+                src="/images/logo-mega-invest-2.png"
                 alt="Mega Invest Logo"
                 width={120}
                 height={40}

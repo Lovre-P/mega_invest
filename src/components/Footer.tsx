@@ -9,7 +9,7 @@ export default function Footer() {
           <div className="text-center md:text-left">
             <div className="bg-white p-2 rounded border-2 border-white inline-block">
               <Image
-                src="/mega-invest-logo.svg"
+                src="/images/logo-mega-invest-2.png"
                 alt="Mega Invest Logo"
                 width={120}
                 height={40}
