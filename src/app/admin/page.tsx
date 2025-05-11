@@ -156,21 +156,7 @@ export default function AdminLoginPage() {
             </div>
           </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-2 text-gray-500">Demo credentials</span>
-              </div>
-            </div>
-
-            <div className="mt-6 text-center text-sm text-gray-600">
-              <p>Email: admin@megainvest.com</p>
-              <p>Password: password123</p>
-            </div>
-          </div>
+          {/* Demo credentials section removed */}
         </div>
       </div>
     </div>

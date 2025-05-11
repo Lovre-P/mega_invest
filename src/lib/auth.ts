@@ -33,10 +33,12 @@ export async function comparePasswords(password: string, hashedPassword: string)
 export async function authenticateUser(email: string, password: string): Promise<Omit<User, 'password'> | null> {
   try {
     // Check if it's the admin user from environment variables
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@megainvest.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
 
-    if (email === adminEmail && password === adminPassword) {
+    // ONLY authenticate with .env credentials if they exist
+    // This is the only way to log in as admin
+    if (adminEmail && adminPassword && email === adminEmail && password === adminPassword) {
       // Create a mock admin user
       const adminUser: Omit<User, 'password'> = {
         id: 'admin',
@@ -49,18 +51,25 @@ export async function authenticateUser(email: string, password: string): Promise
       return adminUser;
     }
 
-    // Find user by email
+    // If admin email is set in .env, we don't allow any other admin logins
+    // This ensures only the admin from .env can log in
+    if (adminEmail) {
+      return null;
+    }
+
+    // FALLBACK ONLY: If no admin email is set in .env, check users.json
+    // This is only used if you haven't set up an admin in .env
     const user = await getUserByEmail(email);
-    if (!user) return null;
+    if (user && user.role === 'admin') { // Only allow admin users from users.json
+      // For existing users in the JSON file (which have plain text passwords)
+      // In a real app, all passwords would be hashed
+      const passwordMatches = user.password === password;
 
-    // For existing users in the JSON file (which have plain text passwords)
-    // In a real app, all passwords would be hashed
-    const passwordMatches = user.password === password;
-
-    if (passwordMatches) {
-      // Return user without password
-      const { password, ...userWithoutPassword } = user;
-      return userWithoutPassword;
+      if (passwordMatches) {
+        // Return user without password
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      }
     }
 
     return null;
@@ -120,9 +129,11 @@ export async function setSessionCookie(user: Omit<User, 'password'>): Promise<vo
   // Create a JWT token
   const token = await createJWT(user);
 
-  // Use a different approach to set the cookie
-  const cookieStore = cookies();
-  cookieStore.set('session', token, {
+  // Set the cookie using the correct API for Next.js 15
+  const cookieStore = await cookies();
+  cookieStore.set({
+    name: 'session',
+    value: token,
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     maxAge: 60 * 60 * 24, // 1 day
@@ -135,7 +146,7 @@ export async function setSessionCookie(user: Omit<User, 'password'>): Promise<vo
  * @returns User payload if session exists and is valid, null otherwise
  */
 export async function getSessionUser(): Promise<any | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('session');
 
   if (!sessionCookie) return null;
@@ -148,6 +159,6 @@ export async function getSessionUser(): Promise<any | null> {
  * Clear the session cookie
  */
 export async function clearSessionCookie(): Promise<void> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.delete('session');
 }

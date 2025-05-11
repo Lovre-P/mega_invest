@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
+// Define the expected payload structure
+interface JWTPayload {
+  id?: string;
+  email?: string;
+  role?: string;
+  [key: string]: any; // Allow for other properties
+}
+
 // Verify JWT token
 async function verifyToken(token: string): Promise<boolean> {
   try {
@@ -11,8 +19,26 @@ async function verifyToken(token: string): Promise<boolean> {
 
     const { payload } = await jwtVerify(token, secret);
 
+    // Cast the payload to our expected type
+    const typedPayload = payload as JWTPayload;
+
     // Check if the token has a valid role (admin)
-    return payload && (payload.role === 'admin' || payload.id === 'admin');
+    if (!typedPayload || typedPayload.role !== 'admin') {
+      return false;
+    }
+
+    // Get admin email from .env
+    const adminEmail = process.env.ADMIN_EMAIL;
+
+    // If admin email is set in .env, ONLY allow that admin
+    if (adminEmail) {
+      // Only allow the admin from .env file
+      return typedPayload.email === adminEmail && typedPayload.id === 'admin';
+    }
+
+    // FALLBACK: If no admin email is set in .env, allow any admin from users.json
+    // This is only used if you haven't set up an admin in .env
+    return Boolean(typedPayload.id && typedPayload.email && typedPayload.role === 'admin');
   } catch (error) {
     console.error('Error verifying token:', error);
     return false;
