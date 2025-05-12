@@ -9,7 +9,6 @@ export default function AdminDashboardPage() {
     { name: "Total Investments", value: "0" },
     { name: "Active Investments", value: "0" },
     { name: "Pending Investments", value: "0", highlight: true },
-    { name: "Total Users", value: "0" },
     { name: "New Leads (This Month)", value: "0" },
   ]);
   const [recentLeads, setRecentLeads] = useState([]);
@@ -58,7 +57,6 @@ export default function AdminDashboardPage() {
             { name: "Total Investments", value: totalInvestments.toString() },
             { name: "Active Investments", value: activeInvestments.toString() },
             { name: "Pending Investments", value: pendingInvestments.toString(), highlight: true },
-            { name: "Total Users", value: totalUsers.toString() },
             { name: "New Leads (This Month)", value: currentMonthLeads.toString() },
           ]);
 
