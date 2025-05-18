@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { getAssetPath } from "@/lib/path-utils";
 
 export default function Footer() {
   return (
@@ -9,7 +10,7 @@ export default function Footer() {
           <div className="text-center md:text-left">
             <div className="bg-white p-2 rounded border-2 border-white inline-block">
               <Image
-                src="/images/logo-mega-invest-2.png"
+                src={getAssetPath("images/logo-mega-invest-2.png")}
                 alt="Mega Invest Logo"
                 width={120}
                 height={40}
@@ -46,27 +47,27 @@ export default function Footer() {
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/" className="text-gray-100 hover:text-white transition">
+                <Link href="/" id="footer-home-link" className="text-gray-100 hover:text-white transition">
                   Home
                 </Link>
               </li>
               <li>
-                <Link href="/investments" className="text-gray-100 hover:text-white transition">
+                <Link href="/investments" id="footer-investments-link" className="text-gray-100 hover:text-white transition">
                   Investment Opportunities
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="text-gray-100 hover:text-white transition">
+                <Link href="/about" id="footer-about-link" className="text-gray-100 hover:text-white transition">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-100 hover:text-white transition">
+                <Link href="/contact" id="footer-contact-link" className="text-gray-100 hover:text-white transition">
                   Contact
                 </Link>
               </li>
               <li>
-                <Link href="/admin" className="text-gray-100 hover:text-white transition">
+                <Link href="/admin" id="footer-admin-link" className="text-gray-100 hover:text-white transition">
                   Admin Portal
                 </Link>
               </li>

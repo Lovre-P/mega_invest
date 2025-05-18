@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Disclosure } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { getAssetPath, isActivePath } from "@/lib/path-utils";
 
+// Add IDs to navigation links for better path correction
 const navigation = [
-  { name: "Home", href: "/", current: true },
-  { name: "Investments", href: "/investments", current: false },
-  { name: "About", href: "/about", current: false },
-  { name: "Contact", href: "/contact", current: false },
+  { name: "Home", href: "/", id: "home-link", current: true },
+  { name: "Investments", href: "/investments", id: "investments-link", current: false },
+  { name: "About", href: "/about", id: "about-link", current: false },
+  { name: "Contact", href: "/contact", id: "contact-link", current: false },
 ];
 
 function classNames(...classes: string[]) {
@@ -18,7 +21,15 @@ function classNames(...classes: string[]) {
 }
 
 export default function Navbar() {
+  const pathname = usePathname();
   const [currentPage, setCurrentPage] = useState("/");
+
+  // Update current page based on pathname
+  useEffect(() => {
+    if (pathname) {
+      setCurrentPage(pathname);
+    }
+  }, [pathname]);
 
   return (
     <Disclosure as="nav" className="bg-white shadow-md">
@@ -31,7 +42,7 @@ export default function Navbar() {
                   <Link href="/">
                     <div className="border-2 border-black p-1">
                       <Image
-                        src="/images/logo-mega-invest-2.png"
+                        src={getAssetPath("images/logo-mega-invest-2.png")}
                         alt="Mega Invest Logo"
                         width={120}
                         height={40}
@@ -46,8 +57,9 @@ export default function Navbar() {
                     <Link
                       key={item.name}
                       href={item.href}
+                      id={item.id}
                       className={classNames(
-                        item.href === currentPage
+                        isActivePath(currentPage, item.href)
                           ? "border-b-2 border-black text-gray-900"
                           : "border-b-2 border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-800",
                         "inline-flex items-center px-1 pt-1 text-sm font-medium"
@@ -96,7 +108,7 @@ export default function Navbar() {
                   <Disclosure.Button
                     as="div"
                     className={classNames(
-                      item.href === currentPage
+                      isActivePath(currentPage, item.href)
                         ? "bg-gray-50 border-l-4 border-black text-black"
                         : "border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800",
                       "block py-3 pl-3 pr-4 text-base font-medium transition-colors duration-200"

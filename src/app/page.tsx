@@ -5,31 +5,31 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { SkeletonGrid } from "@/components/SkeletonLoader";
+import OptimizedImage from "@/components/OptimizedImage";
+import { fetchWithCache } from "@/lib/fetch-utils";
+import { getAssetPath } from "@/lib/path-utils";
 
 export default function Home() {
   const [featuredInvestments, setFeaturedInvestments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch featured investments from the API
+  // Fetch featured investments from the API with caching
   useEffect(() => {
     const fetchFeaturedInvestments = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Only fetch active investments
-        const response = await fetch('/api/investments?status=Active');
-        const data = await response.json();
+        // Use the optimized fetch utility with caching
+        const data = await fetchWithCache('investments?status=Active', {
+          // Cache for 5 minutes by default
+          cacheExpiration: 5 * 60 * 1000
+        });
 
-        if (response.ok) {
-          // Get 3 random investments to feature
-          const shuffled = [...data.investments].sort(() => 0.5 - Math.random());
-          setFeaturedInvestments(shuffled.slice(0, 3));
-        } else {
-          setError(data.error || 'Failed to fetch investments');
-          console.error('Failed to fetch investments:', data.error);
-        }
+        // Get 3 random investments to feature
+        const shuffled = [...data.investments].sort(() => 0.5 - Math.random());
+        setFeaturedInvestments(shuffled.slice(0, 3));
       } catch (error) {
         setError('An unexpected error occurred. Please try again later.');
         console.error('Error fetching investments:', error);
@@ -179,20 +179,22 @@ export default function Home() {
                 <div key={investment.id} className="group overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-lg border border-gray-200">
                   <div className="relative h-48 overflow-hidden">
                     {investment.images && investment.images.length > 0 && investment.mainImageId ? (
-                      <Image
+                      <OptimizedImage
                         src={investment.images.find(img => img.includes(investment.mainImageId)) || investment.images[0]}
                         alt={investment.title}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        withBlur={true}
                       />
                     ) : (
-                      <Image
+                      <OptimizedImage
                         src={`https://picsum.photos/seed/${100 + parseInt(investment.id.slice(-3), 36)}/800/400`}
                         alt={investment.title}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        withBlur={true}
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
