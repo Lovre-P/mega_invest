@@ -57,3 +57,12 @@ export function createUnauthorizedResponse(message: string = 'Unauthorized'): Ne
 export function createForbiddenResponse(message: string = 'Forbidden'): NextResponse {
   return NextResponse.json({ error: message }, { status: 403 });
 }
+
+/**
+ * Create a conflict response for API endpoints
+ * @param message Custom message (default: 'Conflict')
+ * @returns NextResponse with 409 status
+ */
+export function createConflictResponse(message: string = 'Conflict'): NextResponse {
+  return NextResponse.json({ error: message }, { status: 409 });
+}
