@@ -72,8 +72,13 @@ const fileLock = new FileLock();
 
 // Helper functions for reading and writing JSON data with locking
 export async function readJSONWithLock<T>(filePath: string): Promise<T | null> {
+  const lockAcquired = await fileLock.acquireLock(filePath);
+  if (!lockAcquired) {
+    console.error(`Failed to acquire lock for reading ${filePath}`);
+    return null;
+  }
+
   try {
-    // No need to lock for reading, but we'll check if the file exists
     if (!fs.existsSync(filePath)) {
       console.error(`File does not exist: ${filePath}`);
       return null;
@@ -84,6 +89,8 @@ export async function readJSONWithLock<T>(filePath: string): Promise<T | null> {
   } catch (error) {
     console.error(`Error reading file from ${filePath}:`, error);
     return null;
+  } finally {
+    fileLock.releaseLock(filePath);
   }
 }
 

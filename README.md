@@ -37,7 +37,6 @@ A Next.js application for showcasing and managing investment opportunities.
 1. Clone the repository
 ```bash
 git clone <repository-url>
-cd web-megainvest
 ```
 
 2. Install dependencies
@@ -55,6 +54,10 @@ ADMIN_PASSWORD="YourStrongPasswordHere"
 
 # JWT Secret for authentication
 JWT_SECRET=your_jwt_secret_key_change_this_in_production
+# IMPORTANT: The JWT_SECRET is critical for securing user sessions and preventing token forgery.
+# It MUST be a strong, unique, and random string. 
+# Keep this secret confidential and ensure it is different for every production environment.
+# You can generate a suitable secret using a command like: openssl rand -hex 32
 
 # Supabase credentials (for future use)
 NEXT_PUBLIC_SUPABASE_URL=https://your-supabase-url.supabase.co
@@ -87,9 +90,13 @@ yarn dev
 
 ## Admin Access
 
-To access the admin panel, go to [http://localhost:3000/admin](http://localhost:3000/admin) and use the following credentials:
-- Email: admin@megainvest.com
-- Password: password123
+To access the admin panel, go to [http://localhost:3000/admin](http://localhost:3000/admin).
+
+The application uses the administrator credentials defined in your `.env.local` file:
+- `ADMIN_EMAIL`: The email address for the admin account.
+- `ADMIN_PASSWORD`: The password for the admin account.
+
+Please ensure you have set these environment variables as described in the "Installation" section. The application is configured to use these credentials for the initial admin setup and for validating administrative access.
 
 ## Future Improvements
 

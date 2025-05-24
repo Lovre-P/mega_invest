@@ -2,9 +2,9 @@ import fs from 'fs';
 import path from 'path';
 
 // Define the paths to our JSON files
-const dataDir = path.join(process.cwd(), 'src/data');
-const backupDir = path.join(process.cwd(), 'src/data/backups');
-const backupConfigPath = path.join(dataDir, 'backup-config.json');
+const dataDir = path.join(process.cwd(), '_internal_data');
+const backupDir = path.join(process.cwd(), '_internal_data', 'backups');
+const backupConfigPath = path.join(dataDir, 'backup-config.json'); // This will correctly resolve to _internal_data/backup-config.json
 
 // Backup interval in milliseconds (12 hours)
 const BACKUP_INTERVAL_MS = 12 * 60 * 60 * 1000;
@@ -25,7 +25,8 @@ if (!fs.existsSync(backupDir)) {
  * Reads the backup configuration file
  * @returns The backup configuration object
  */
-function readBackupConfig(): BackupConfig {
+// Exported for testing
+export function readBackupConfig(): BackupConfig {
   try {
     if (!fs.existsSync(backupConfigPath)) {
       // Create default config if it doesn't exist
@@ -48,7 +49,8 @@ function readBackupConfig(): BackupConfig {
  * @param config The backup configuration object to write
  * @returns boolean indicating success or failure
  */
-function writeBackupConfig(config: BackupConfig): boolean {
+// Exported for testing
+export function writeBackupConfig(config: BackupConfig): boolean {
   try {
     fs.writeFileSync(backupConfigPath, JSON.stringify(config, null, 2), 'utf8');
     return true;
@@ -63,8 +65,9 @@ function writeBackupConfig(config: BackupConfig): boolean {
  * @param filename The name of the file to check
  * @returns boolean indicating if backup is needed
  */
-function isBackupNeeded(filename: string): boolean {
-  const config = readBackupConfig();
+// Exported for testing
+export function isBackupNeeded(filename: string): boolean {
+  const config = readBackupConfig(); // Uses the exported readBackupConfig
   const lastBackupTime = config.lastBackups[filename];
 
   // If no previous backup, a backup is needed
@@ -75,12 +78,19 @@ function isBackupNeeded(filename: string): boolean {
   try {
     const lastBackupDate = new Date(lastBackupTime);
     const currentDate = new Date();
+    const lastBackupTimestamp = lastBackupDate.getTime();
+
+    // If timestamp was invalid, getTime() returns NaN. Treat as needing backup.
+    if (isNaN(lastBackupTimestamp)) {
+      console.warn(`Invalid backup timestamp found for ${filename}: ${lastBackupTime}. Assuming backup is needed.`);
+      return true;
+    }
 
     // Check if the time difference is greater than the backup interval
-    const timeDiff = currentDate.getTime() - lastBackupDate.getTime();
+    const timeDiff = currentDate.getTime() - lastBackupTimestamp;
     return timeDiff >= BACKUP_INTERVAL_MS;
-  } catch (error) {
-    console.error(`Error parsing backup timestamp for ${filename}:`, error);
+  } catch (error) { // This catch is for other unexpected errors during Date operations
+    console.error(`Error processing backup timestamp for ${filename}:`, error);
     // If there's an error parsing the timestamp, assume backup is needed
     return true;
   }
@@ -91,9 +101,10 @@ function isBackupNeeded(filename: string): boolean {
  * @param filename The name of the file that was backed up
  * @returns boolean indicating success or failure
  */
-function updateBackupTimestamp(filename: string): boolean {
+// Exported for testing
+export function updateBackupTimestamp(filename: string): boolean {
   try {
-    const config = readBackupConfig();
+    const config = readBackupConfig(); // Uses the exported readBackupConfig
     config.lastBackups[filename] = new Date().toISOString();
     return writeBackupConfig(config);
   } catch (error) {
@@ -134,7 +145,16 @@ export function backupFile(filename: string, forceBackup: boolean = false): bool
     console.log(`Backup created: ${backupPath}`);
 
     // Update the backup timestamp
-    updateBackupTimestamp(filename);
+    const timestampUpdated = updateBackupTimestamp(filename);
+    if (!timestampUpdated) {
+      // Log the error but don't fail the entire backup operation,
+      // as the file itself was copied.
+      console.warn(`Failed to update backup timestamp for ${filename}, but backup file was created.`);
+    }
+
+    // Attempt to clean up old backups after a successful backup
+    // This is a non-critical operation, so its success/failure doesn't change backupFile's result.
+    cleanupOldBackups(); 
 
     return true;
   } catch (error) {

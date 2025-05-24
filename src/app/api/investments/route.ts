@@ -9,7 +9,7 @@ import { DatabaseError, ValidationError, ErrorCodes } from '@/lib/error-handler'
 
 export async function GET(request: NextRequest) {
   try {
-    const investments = getInvestments();
+    const investments = await getInvestments();
 
     // Handle query parameters for filtering
     const { searchParams } = new URL(request.url);
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       return createBadRequestResponse(validationError.message);
     }
 
-    const success = createInvestment(investment);
+    const success = await createInvestment(investment);
 
     if (success) {
       return createSuccessResponse(

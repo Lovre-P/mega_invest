@@ -1,30 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInvestmentById, updateInvestment, deleteInvestment } from '@/lib/db';
+import { 
+  logError, 
+  DatabaseError, 
+  ValidationError, 
+  ErrorCodes 
+} from '@/lib/error-handler';
+import { 
+  createErrorResponse, 
+  createNotFoundResponse, 
+  createBadRequestResponse,
+  createSuccessResponse // For successful PUT/DELETE
+} from '@/lib/api-response';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params; // Resolve promise outside try-catch for id access in catch
+  const id = resolvedParams.id;
   try {
-    // Await the params promise to get the id
-    const resolvedParams = await params;
-    const id = resolvedParams.id;
-
-    const investment = getInvestmentById(id);
+    const investment = await getInvestmentById(id);
 
     if (!investment) {
-      return NextResponse.json(
-        { error: 'Investment not found' },
-        { status: 404 }
-      );
+      return createNotFoundResponse('Investment not found');
     }
 
-    return NextResponse.json({ investment });
+    return createSuccessResponse({ investment });
   } catch (error) {
-    console.error(`Error fetching investment:`, error);
-    return NextResponse.json(
-      { error: 'Failed to fetch investment' },
-      { status: 500 }
+    logError(error as Error, { context: `Fetching investment ${id}` });
+    return createErrorResponse(
+      new DatabaseError(`Failed to fetch investment: ${id}`, ErrorCodes.DB_READ_ERROR, error as Error)
     );
   }
 }
@@ -33,38 +39,32 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
   try {
-    // Await the params promise to get the id
-    const resolvedParams = await params;
-    const id = resolvedParams.id;
-
     const updatedInvestment = await request.json();
 
     // Validate required fields
     if (!updatedInvestment.title || !updatedInvestment.description || !updatedInvestment.category) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      const validationError = new ValidationError('Missing required fields: title, description, category are required.');
+      return createBadRequestResponse(validationError.message);
     }
 
-    const success = updateInvestment(id, updatedInvestment);
+    const success = await updateInvestment(id, updatedInvestment);
 
     if (success) {
-      return NextResponse.json(
-        { message: 'Investment updated successfully' }
-      );
+      return createSuccessResponse({ message: 'Investment updated successfully' });
     } else {
-      return NextResponse.json(
-        { error: 'Investment not found or update failed' },
-        { status: 404 }
+      // This could be DB_NOT_FOUND if the item wasn't there, or DB_WRITE_ERROR if update itself failed
+      // For simplicity, using DB_WRITE_ERROR as the primary assumption for a failed update operation
+      return createErrorResponse(
+        new DatabaseError(`Investment not found or update failed for ID: ${id}`, ErrorCodes.DB_WRITE_ERROR)
       );
     }
   } catch (error) {
-    console.error(`Error updating investment:`, error);
-    return NextResponse.json(
-      { error: 'Failed to update investment' },
-      { status: 500 }
+    logError(error as Error, { context: `Updating investment ${id}` });
+    return createErrorResponse(
+      new DatabaseError(`Failed to update investment: ${id}`, ErrorCodes.DB_WRITE_ERROR, error as Error)
     );
   }
 }
@@ -73,28 +73,20 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
   try {
-    // Await the params promise to get the id
-    const resolvedParams = await params;
-    const id = resolvedParams.id;
-
-    const success = deleteInvestment(id);
+    const success = await deleteInvestment(id);
 
     if (success) {
-      return NextResponse.json(
-        { message: 'Investment deleted successfully' }
-      );
+      return createSuccessResponse({ message: 'Investment deleted successfully' });
     } else {
-      return NextResponse.json(
-        { error: 'Investment not found or delete failed' },
-        { status: 404 }
-      );
+      return createNotFoundResponse(`Investment not found or delete failed for ID: ${id}`);
     }
   } catch (error) {
-    console.error(`Error deleting investment:`, error);
-    return NextResponse.json(
-      { error: 'Failed to delete investment' },
-      { status: 500 }
+    logError(error as Error, { context: `Deleting investment ${id}` });
+    return createErrorResponse(
+      new DatabaseError(`Failed to delete investment: ${id}`, ErrorCodes.DB_DELETE_ERROR, error as Error)
     );
   }
 }

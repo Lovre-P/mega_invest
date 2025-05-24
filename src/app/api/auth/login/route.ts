@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail } from '@/lib/db';
+import { authenticateUser, setSessionCookie } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,30 +13,30 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Find user by email
-    const user = getUserByEmail(email);
+    // Authenticate user
+    const user = await authenticateUser(email, password);
     
-    // Check if user exists and password matches
-    if (!user || user.password !== password) {
+    if (user) {
+      // Set session cookie
+      await setSessionCookie(user);
+      
+      // Return success response (user object without password is handled by authenticateUser)
+      return NextResponse.json({
+        message: 'Login successful',
+        user // This user object from authenticateUser already excludes the password
+      });
+    } else {
+      // Authentication failed
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
-    
-    // Create a user object without the password
-    const { password: _, ...userWithoutPassword } = user;
-    
-    // In a real application, you would generate a JWT token here
-    // For simplicity, we'll just return the user object
-    return NextResponse.json({
-      user: userWithoutPassword,
-      message: 'Login successful'
-    });
   } catch (error) {
     console.error('Error during login:', error);
+    // General error for unexpected issues
     return NextResponse.json(
-      { error: 'Login failed' },
+      { error: 'An unexpected error occurred during login.' },
       { status: 500 }
     );
   }
