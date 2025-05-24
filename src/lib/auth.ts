@@ -54,24 +54,15 @@ export async function authenticateUser(email: string, password: string): Promise
     // If admin email is set in .env, we don't allow any other admin logins
     // This ensures only the admin from .env can log in
     if (adminEmail) {
+      // If ADMIN_EMAIL is set, but the provided credentials didn't match,
+      // then authentication fails. No fallback is attempted.
       return null;
     }
 
-    // FALLBACK ONLY: If no admin email is set in .env, check users.json
-    // This is only used if you haven't set up an admin in .env
-    const user = await getUserByEmail(email);
-    if (user && user.role === 'admin') { // Only allow admin users from users.json
-      // For existing users in the JSON file (which have plain text passwords)
-      // In a real app, all passwords would be hashed
-      const passwordMatches = user.password === password;
-
-      if (passwordMatches) {
-        // Return user without password
-        const { password, ...userWithoutPassword } = user;
-        return userWithoutPassword;
-      }
-    }
-
+    // If ADMIN_EMAIL is not set in the environment, authentication is not possible.
+    // This effectively means the admin user must be configured via .env variables.
+    // (The old fallback to users.json is removed.)
+    console.warn('Admin authentication attempted, but ADMIN_EMAIL is not set in environment variables. Authentication will fail.');
     return null;
   } catch (error) {
     console.error('Error authenticating user:', error);

@@ -1,30 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserById, updateUser, deleteUser } from '@/lib/db';
+import { 
+  logError, 
+  DatabaseError, 
+  ValidationError, 
+  ErrorCodes 
+} from '@/lib/error-handler';
+import { 
+  createErrorResponse, 
+  createNotFoundResponse, 
+  createBadRequestResponse,
+  createSuccessResponse 
+} from '@/lib/api-response';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id;
   try {
-    const id = params.id;
-    const user = getUserById(id);
+    const user = await getUserById(id);
     
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return createNotFoundResponse(`User with ID ${id} not found`);
     }
     
     // Remove password from the response
     const { password, ...userWithoutPassword } = user;
     
-    return NextResponse.json({ user: userWithoutPassword });
+    return createSuccessResponse({ user: userWithoutPassword });
   } catch (error) {
-    console.error(`Error fetching user with ID ${params.id}:`, error);
-    return NextResponse.json(
-      { error: 'Failed to fetch user' },
-      { status: 500 }
+    logError(error as Error, { context: `Fetching user with ID ${id}` });
+    return createErrorResponse(
+      new DatabaseError(`Failed to fetch user with ID ${id}`, ErrorCodes.DB_READ_ERROR, error as Error)
     );
   }
 }
@@ -33,41 +41,56 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id;
   try {
-    const id = params.id;
     const updatedUser = await request.json();
     
     // Validate required fields
     if (!updatedUser.name || !updatedUser.email || !updatedUser.role) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
+      const validationError = new ValidationError(
+        'Missing required fields: name, email, and role are required.',
+        'name, email, role'
       );
+      return createBadRequestResponse(validationError.message);
     }
     
-    const success = updateUser(id, updatedUser);
+    // Note: updateUser in db.ts does not hash password, assume password is not updatable here
+    // or should be handled in a separate endpoint for security.
+    // If password can be updated here, it MUST be hashed.
+    if (updatedUser.password) {
+        // For this refactor, we'll forbid password updates via this general PUT endpoint.
+        // A dedicated password change endpoint would be more secure.
+        return createBadRequestResponse('Password updates are not allowed via this endpoint. Please use a dedicated password change function.');
+    }
+
+    const success = await updateUser(id, updatedUser);
     
     if (success) {
-      // Get the updated user
-      const user = getUserById(id);
-      // Remove password from the response
+      // Get the updated user to return it (ensure it's the version from the DB)
+      const user = await getUserById(id); 
+      if (!user) {
+        // This case should ideally not happen if updateUser succeeded and ID is correct
+        logError(new Error(`User with ID ${id} not found after successful update.`), { context: 'Post-update user fetch' });
+        return createNotFoundResponse(`User with ID ${id} not found after update.`);
+      }
       const { password, ...userWithoutPassword } = user;
-      
-      return NextResponse.json({
+      return createSuccessResponse({
         message: 'User updated successfully',
         user: userWithoutPassword
       });
     } else {
-      return NextResponse.json(
-        { error: 'User not found or update failed' },
-        { status: 404 }
+      // This could be DB_NOT_FOUND if the item wasn't there, or DB_WRITE_ERROR if update itself failed
+      return createErrorResponse(
+        new DatabaseError(`User not found or update failed for ID: ${id}`, ErrorCodes.DB_WRITE_ERROR)
       );
     }
   } catch (error) {
-    console.error(`Error updating user with ID ${params.id}:`, error);
-    return NextResponse.json(
-      { error: 'Failed to update user' },
-      { status: 500 }
+    logError(error as Error, { context: `Updating user with ID ${id}` });
+     if (error instanceof SyntaxError) { // Error parsing JSON
+        return createBadRequestResponse('Invalid JSON payload');
+    }
+    return createErrorResponse(
+      new DatabaseError(`Failed to update user with ID ${id}`, ErrorCodes.DB_WRITE_ERROR, error as Error)
     );
   }
 }
@@ -76,25 +99,19 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id;
   try {
-    const id = params.id;
-    const success = deleteUser(id);
+    const success = await deleteUser(id);
     
     if (success) {
-      return NextResponse.json(
-        { message: 'User deleted successfully' }
-      );
+      return createSuccessResponse({ message: `User with ID ${id} deleted successfully` });
     } else {
-      return NextResponse.json(
-        { error: 'User not found or delete failed' },
-        { status: 404 }
-      );
+      return createNotFoundResponse(`User with ID ${id} not found or delete failed`);
     }
   } catch (error) {
-    console.error(`Error deleting user with ID ${params.id}:`, error);
-    return NextResponse.json(
-      { error: 'Failed to delete user' },
-      { status: 500 }
+    logError(error as Error, { context: `Deleting user with ID ${id}` });
+    return createErrorResponse(
+      new DatabaseError(`Failed to delete user with ID ${id}`, ErrorCodes.DB_DELETE_ERROR, error as Error)
     );
   }
 }

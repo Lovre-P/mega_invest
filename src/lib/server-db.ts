@@ -1,27 +1,28 @@
 'use server';
 
 // This file contains server-side only code
-// We'll use dynamic imports for fs and path to avoid client-side errors
 
 import type { InvestmentStatus, Investment, User, Lead } from '@/lib/db-query';
+// Import the refactored async functions from db.ts
+import { 
+  readDataAsync, 
+  writeDataAsync,
+  getInvestments as dbGetInvestments,
+  getInvestmentById as dbGetInvestmentById,
+  createInvestment as dbCreateInvestment,
+  updateInvestment as dbUpdateInvestment,
+  deleteInvestment as dbDeleteInvestment,
+  getUsers as dbGetUsers,
+  getUserById as dbGetUserById,
+  getUserByEmail as dbGetUserByEmail,
+  // createUser, updateUser, deleteUser, getLeads, getLeadById, createLead, deleteLead are not directly used by server-db.ts, 
+  // but if they were, they'd be imported and wrapped here too.
+} from './db'; 
+import path from 'path'; // db.ts expects full paths, so server-db will construct them
 
-// Define the paths to our JSON files - these will be resolved at runtime
-let investmentsPath: string;
-let usersPath: string;
-let leadsPath: string;
-
-// Initialize paths function - will be called at runtime
-async function initPaths() {
-  const { join } = await import('path');
-  const cwd = process.cwd();
-
-  investmentsPath = join(cwd, 'src/data/investments.json');
-  usersPath = join(cwd, 'src/data/users.json');
-  leadsPath = join(cwd, 'src/data/leads.json');
-}
-
-// Define types for better type safety
-export type InvestmentStatus = 'Active' | 'Pending' | 'Rejected' | 'Draft';
+// Define types for better type safety - these are already defined in db-query.ts, so we can re-export or rely on that
+// For clarity, we can keep them here if server-db is meant to be a standalone interface layer
+// export type InvestmentStatus = 'Active' | 'Pending' | 'Rejected' | 'Draft'; // from db-query
 
 export interface Investment {
   id: string;
@@ -42,106 +43,44 @@ export interface Investment {
   rejectionReason?: string;
 }
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-  role: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// export interface User { ... } // from db-query
+// export interface Lead { ... } // from db-query
 
-export interface Lead {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  investmentInterest: string;
-  message: string;
-  createdAt: string;
-}
 
-// Helper function to read JSON data
-async function readData(filePath: string) {
-  try {
-    // Dynamically import fs
-    const fs = await import('fs');
-
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      console.error(`File does not exist: ${filePath}`);
-      return null;
-    }
-
-    const data = fs.readFileSync(filePath, 'utf8');
-
-    try {
-      return JSON.parse(data);
-    } catch (parseError) {
-      console.error(`Error parsing JSON from ${filePath}:`, parseError);
-      return null;
-    }
-  } catch (error) {
-    console.error(`Error reading file from ${filePath}:`, error);
-    return null;
-  }
-}
-
-// Helper function to write JSON data
-async function writeData(filePath: string, data: any) {
-  try {
-    // Dynamically import fs and path
-    const fs = await import('fs');
-    const path = await import('path');
-
-    // Create a backup before writing
-    if (fs.existsSync(filePath)) {
-      const backupPath = `${filePath}.bak`;
-      fs.copyFileSync(filePath, backupPath);
-    }
-
-    // Ensure the directory exists
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
-    return true;
-  } catch (error) {
-    console.error(`Error writing file to ${filePath}:`, error);
-    return false;
-  }
-}
+// Construct paths here, as db.ts functions expect full file paths
+const investmentsPath = path.join(process.cwd(), 'src/data/investments.json');
+const usersPath = path.join(process.cwd(), 'src/data/users.json');
+// const leadsPath = path.join(process.cwd(), 'src/data/leads.json'); // Not used by server-db functions directly
 
 // Investment functions
-export async function getInvestments(): Promise<Investment[]> {
-  // Make sure paths are initialized
-  await initPaths();
+// These now wrap the functions from db.ts, which handle locking.
+// server-db.ts primarily acts as a server-side API layer.
 
-  const data = await readData(investmentsPath);
-  return data ? data.investments : [];
+export async function getInvestments(): Promise<Investment[]> {
+  return dbGetInvestments();
 }
 
 export async function getInvestmentById(id: string): Promise<Investment | undefined> {
-  const investments = await getInvestments();
-  return investments.find((investment: Investment) => investment.id === id);
+  return dbGetInvestmentById(id);
 }
 
 export async function getInvestmentsByStatus(status: InvestmentStatus): Promise<Investment[]> {
-  const investments = await getInvestments();
+  const investments = await dbGetInvestments(); // Use the wrapper
   return investments.filter((investment: Investment) => investment.status === status);
 }
 
 export async function createInvestment(investment: Partial<Investment>): Promise<boolean> {
-  // Make sure paths are initialized
-  await initPaths();
+  // The logic for ID generation, timestamps, and default status 
+  // is already in dbCreateInvestment in db.ts.
+  // If server-db needs to add specific logic BEFORE calling db.ts, it can do so here.
+  // For now, it's a direct pass-through.
+  return dbCreateInvestment(investment);
 
-  const data = await readData(investmentsPath);
-  if (!data) return false;
-
-  // Generate a slug-like ID if not provided
+  // Example of how it was before, now handled by db.ts:
+  // const data = await readDataAsync<{ investments: Investment[] }>(investmentsPath);
+  // if (!data) return false;
+  //
+  // // Generate a slug-like ID if not provided
   if (!investment.id) {
     investment.id = investment.title
       ?.toLowerCase()
@@ -159,18 +98,19 @@ export async function createInvestment(investment: Partial<Investment>): Promise
     investment.status = 'Pending';
   }
 
-  data.investments.push(investment);
-  return await writeData(investmentsPath, data);
+  // data.investments.push(investment as Investment);
+  // return await writeDataAsync(investmentsPath, data);
 }
 
 export async function updateInvestment(id: string, updatedInvestment: Partial<Investment>): Promise<boolean> {
-  // Make sure paths are initialized
-  await initPaths();
+  // Timestamp and metadata logic is in dbUpdateInvestment in db.ts
+  return dbUpdateInvestment(id, updatedInvestment);
 
-  const data = await readData(investmentsPath);
-  if (!data) return false;
-
-  const index = data.investments.findIndex((investment: Investment) => investment.id === id);
+  // Example of how it was before, now handled by db.ts:
+  // const data = await readDataAsync<{ investments: Investment[] }>(investmentsPath);
+  // if (!data) return false;
+  //
+  // const index = data.investments.findIndex((investment: Investment) => investment.id === id);
   if (index === -1) return false;
 
   // Update the timestamp
@@ -187,41 +127,45 @@ export async function updateInvestment(id: string, updatedInvestment: Partial<In
     updatedInvestment.submittedAt = data.investments[index].submittedAt;
   }
 
-  data.investments[index] = { ...data.investments[index], ...updatedInvestment };
-  return await writeData(investmentsPath, data);
+  // data.investments[index] = { ...data.investments[index], ...updatedInvestment };
+  // return await writeDataAsync(investmentsPath, data);
 }
 
 export async function deleteInvestment(id: string): Promise<boolean> {
-  // Make sure paths are initialized
-  await initPaths();
-
-  const data = await readData(investmentsPath);
-  if (!data) return false;
-
-  const initialLength = data.investments.length;
-  data.investments = data.investments.filter((investment: Investment) => investment.id !== id);
-
-  if (data.investments.length === initialLength) return false;
-  return await writeData(investmentsPath, data);
+  return dbDeleteInvestment(id);
+  
+  // Example of how it was before, now handled by db.ts:
+  // const data = await readDataAsync<{ investments: Investment[] }>(investmentsPath);
+  // if (!data) return false;
+  //
+  // const initialLength = data.investments.length;
+  // data.investments = data.investments.filter((investment: Investment) => investment.id !== id);
+  //
+  // if (data.investments.length === initialLength) return false;
+  // return await writeDataAsync(investmentsPath, data);
 }
 
 // Investment submission functions
+// This function adds business logic (setting submission metadata) before calling createInvestment
 export async function submitInvestment(investment: Partial<Investment>, submitterEmail: string): Promise<boolean> {
   // Set submission metadata
   investment.submittedBy = submitterEmail;
   investment.submittedAt = new Date().toISOString();
   investment.status = 'Pending';
 
-  return await createInvestment(investment);
+  // Calls the createInvestment wrapper, which calls dbCreateInvestment
+  return await createInvestment(investment); 
 }
 
+// This function adds business logic before calling updateInvestment
 export async function reviewInvestment(
   id: string,
   status: InvestmentStatus,
   reviewerEmail: string,
   rejectionReason?: string
 ): Promise<boolean> {
-  const investment = await getInvestmentById(id);
+  // getInvestmentById is already a wrapper for dbGetInvestmentById
+  const investment = await getInvestmentById(id); 
   if (!investment) return false;
 
   const updates: Partial<Investment> = {
@@ -238,24 +182,21 @@ export async function reviewInvestment(
     updates.rejectionReason = undefined;
   }
 
-  return await updateInvestment(id, updates);
+  // updateInvestment is already a wrapper for dbUpdateInvestment
+  return await updateInvestment(id, updates); 
 }
 
 // User functions
+// These are now wrappers for functions from db.ts
 export async function getUsers(): Promise<User[]> {
-  // Make sure paths are initialized
-  await initPaths();
-
-  const data = await readData(usersPath);
-  return data ? data.users : [];
+  return dbGetUsers();
 }
 
 export async function getUserById(id: string): Promise<User | undefined> {
-  const users = await getUsers();
-  return users.find((user: User) => user.id === id);
+  return dbGetUserById(id);
 }
 
 export async function getUserByEmail(email: string): Promise<User | undefined> {
-  const users = await getUsers();
-  return users.find((user: User) => user.email === email);
+  // This function is used by auth.ts
+  return dbGetUserByEmail(email);
 }

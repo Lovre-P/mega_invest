@@ -1,27 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLeadById, deleteLead } from '@/lib/db';
+import { 
+  logError, 
+  DatabaseError, 
+  ErrorCodes 
+} from '@/lib/error-handler';
+import { 
+  createErrorResponse, 
+  createNotFoundResponse, 
+  createSuccessResponse 
+} from '@/lib/api-response';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id;
   try {
-    const id = params.id;
-    const lead = getLeadById(id);
+    const lead = await getLeadById(id);
     
     if (!lead) {
-      return NextResponse.json(
-        { error: 'Lead not found' },
-        { status: 404 }
-      );
+      return createNotFoundResponse(`Lead with ID ${id} not found`);
     }
     
-    return NextResponse.json({ lead });
+    return createSuccessResponse({ lead });
   } catch (error) {
-    console.error(`Error fetching lead with ID ${params.id}:`, error);
-    return NextResponse.json(
-      { error: 'Failed to fetch lead' },
-      { status: 500 }
+    logError(error as Error, { context: `Fetching lead with ID ${id}` });
+    return createErrorResponse(
+      new DatabaseError(`Failed to fetch lead with ID ${id}`, ErrorCodes.DB_READ_ERROR, error as Error)
     );
   }
 }
@@ -30,25 +36,20 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id;
   try {
-    const id = params.id;
-    const success = deleteLead(id);
+    const success = await deleteLead(id);
     
     if (success) {
-      return NextResponse.json(
-        { message: 'Lead deleted successfully' }
-      );
+      return createSuccessResponse({ message: `Lead with ID ${id} deleted successfully` });
     } else {
-      return NextResponse.json(
-        { error: 'Lead not found or delete failed' },
-        { status: 404 }
-      );
+      // Assuming if deleteLead returns false, the lead was not found.
+      return createNotFoundResponse(`Lead with ID ${id} not found or delete failed`);
     }
   } catch (error) {
-    console.error(`Error deleting lead with ID ${params.id}:`, error);
-    return NextResponse.json(
-      { error: 'Failed to delete lead' },
-      { status: 500 }
+    logError(error as Error, { context: `Deleting lead with ID ${id}` });
+    return createErrorResponse(
+      new DatabaseError(`Failed to delete lead with ID ${id}`, ErrorCodes.DB_DELETE_ERROR, error as Error)
     );
   }
 }

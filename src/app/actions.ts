@@ -10,6 +10,7 @@ import {
 } from '@/lib/server-db';
 import { authenticateUser, setSessionCookie, clearSessionCookie } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 // Type for investment submission form data
 interface InvestmentSubmissionFormData {

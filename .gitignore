@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Application data and backups
+_internal_data/*.json
+_internal_data/backups/
