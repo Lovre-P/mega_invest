@@ -2,7 +2,7 @@
 
 // This file contains server-side only code
 
-import type { InvestmentStatus, Investment, User, Lead } from '@/lib/db-query';
+import type { InvestmentStatus, Investment, User } from '@/lib/db-query';
 // Import the refactored async functions from db.ts
 import {
   getInvestments as dbGetInvestments,

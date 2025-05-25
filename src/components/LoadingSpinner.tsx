@@ -18,35 +18,47 @@ export default function LoadingSpinner({
 }: LoadingSpinnerProps) {
   // Determine the size of the spinner
   const sizeClass = {
-    small: 'h-4 w-4 border-2',
-    medium: 'h-8 w-8 border-2',
-    large: 'h-12 w-12 border-4',
+    small: 'h-6 w-6',
+    medium: 'h-10 w-10',
+    large: 'h-16 w-16',
   }[size];
 
-  // Determine the color of the spinner
-  const colorClass = {
-    black: 'border-black',
-    white: 'border-white',
-    gray: 'border-gray-400',
-  }[color];
+  const textSizeClass = {
+    small: 'text-sm',
+    medium: 'text-base',
+    large: 'text-xl',
+  }[size];
 
   // Create the spinner element
   const spinner = (
-    <div className="flex flex-col items-center justify-center">
-      <div
-        className={`animate-spin rounded-full ${sizeClass} border-t-transparent ${colorClass}`}
-        role="status"
-        aria-label="Loading"
-      />
-      {text && <p className="mt-2 text-sm font-medium">{text}</p>}
+    <div className="flex flex-col items-center justify-center space-y-4">
+      <div className="relative">
+        {/* Main spinner */}
+        <div
+          className={`${sizeClass} modern-spinner`}
+          role="status"
+          aria-label="Loading"
+        />
+        {/* Inner glow effect */}
+        <div
+          className={`${sizeClass} absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 opacity-20 animate-pulse`}
+        />
+      </div>
+      {text && (
+        <p className={`text-slate-600 font-medium ${textSizeClass} animate-pulse text-center`}>
+          {text}
+        </p>
+      )}
     </div>
   );
 
   // If fullScreen is true, center the spinner on the screen
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50">
-        {spinner}
+      <div className="fixed inset-0 flex items-center justify-center glass z-50">
+        <div className="glass-card p-8 rounded-2xl">
+          {spinner}
+        </div>
       </div>
     );
   }

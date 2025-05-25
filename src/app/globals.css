@@ -1,18 +1,59 @@
 @import "tailwindcss";
 
 :root {
+  /* Modern Color Palette */
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+  --primary-950: #172554;
+
+  /* Accent Colors */
+  --accent-50: #fffbeb;
+  --accent-100: #fef3c7;
+  --accent-200: #fde68a;
+  --accent-300: #fcd34d;
+  --accent-400: #fbbf24;
+  --accent-500: #f59e0b;
+  --accent-600: #d97706;
+  --accent-700: #b45309;
+  --accent-800: #92400e;
+  --accent-900: #78350f;
+
+  /* Glass Effect Variables */
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+
+  /* Background & Foreground */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1e293b;
   --color-background: #ffffff;
-  --color-foreground: #171717;
+  --color-foreground: #1e293b;
+
+  /* Surface Colors */
+  --surface-primary: #ffffff;
+  --surface-secondary: #f8fafc;
+  --surface-tertiary: #f1f5f9;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --color-background: #0a0a0a;
-    --color-foreground: #ededed;
+    --background: #0f172a;
+    --foreground: #3d4a57;
+    --color-background: #0f172a;
+    --color-foreground: #f1f5f9;
+    --surface-primary: #1e293b;
+    --surface-secondary: #334155;
+    --surface-tertiary: #475569;
+    --glass-bg: rgba(15, 23, 42, 0.8);
+    --glass-border: rgba(148, 163, 184, 0.2);
   }
 }
 
@@ -20,13 +61,296 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
+  font-feature-settings: 'rlig' 1, 'calt' 1;
 }
 
 .font-mono {
   font-family: 'Geist Mono', monospace;
 }
 
-/* Global form element styling for better visibility */
+/* Modern Glass Morphism Utilities */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Modern Gradient Backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%);
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, var(--accent-500) 0%, var(--accent-700) 100%);
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, var(--primary-900) 0%, var(--primary-700) 50%, var(--accent-600) 100%);
+}
+
+/* Modern Button Styles */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px 0 rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px 0 rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-800) 100%);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--foreground);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Modern Form Styling */
+.form-input {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(59, 130, 246, 0.1);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--foreground);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.form-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.form-label {
+  color: var(--foreground);
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+  display: block;
+  letter-spacing: 0.025em;
+}
+
+.form-select {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(59, 130, 246, 0.1);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--foreground);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px 12px;
+  padding-right: 40px;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.form-textarea {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(59, 130, 246, 0.1);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--foreground);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  resize: vertical;
+  min-height: 120px;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* Modern Card Styles */
+.modern-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  transition: all 0.3s ease;
+}
+
+.modern-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px 0 rgba(31, 38, 135, 0.2);
+}
+
+/* Investment Card Styles */
+.investment-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
+.investment-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px 0 rgba(31, 38, 135, 0.2);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Feature Card Styles */
+.feature-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 32px;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px 0 rgba(31, 38, 135, 0.15);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* Risk Badge Styles */
+.risk-badge-low {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.risk-badge-moderate {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.risk-badge-high {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Animation Utilities */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Loading Spinner Modern Style */
+.modern-spinner {
+  border: 3px solid rgba(59, 130, 246, 0.1);
+  border-top: 3px solid var(--primary-500);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Legacy form compatibility */
 select,
 input[type="text"],
 input[type="email"],
@@ -34,82 +358,42 @@ input[type="password"],
 input[type="number"],
 input[type="tel"],
 textarea {
-  color: #000000 !important; /* Black text for better visibility */
-  background-color: white !important;
-  border: 1px solid #d1d5db !important; /* gray-300 */
-  font-size: 1rem !important; /* Larger text */
-  padding: 0.75rem 1rem !important; /* More padding */
-  line-height: 1.5 !important; /* Better line height */
-  height: auto !important; /* Ensure height adjusts to content */
+  color: var(--foreground) !important;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 2px solid rgba(59, 130, 246, 0.1) !important;
+  border-radius: 12px !important;
+  font-size: 1rem !important;
+  padding: 14px 18px !important;
+  line-height: 1.5 !important;
+  transition: all 0.3s ease !important;
 }
 
-/* Dropdown options */
-select {
-  height: 3rem !important; /* Fixed height for select elements */
-}
-
-select option {
-  color: #000000 !important; /* Black text */
-  background-color: white !important;
-  font-size: 1rem !important; /* Larger text */
-  padding: 0.5rem !important; /* Add padding to options */
-}
-
-/* Form labels */
-label,
-label.text-gray-700,
-.block.text-sm.font-medium.text-gray-700 {
-  color: #111827 !important; /* gray-900 for better contrast */
-  font-weight: 500 !important; /* medium font weight */
-  font-size: 0.95rem !important; /* Slightly larger text */
-  margin-bottom: 0.5rem !important; /* Add space below labels */
-  display: block !important; /* Ensure labels are block elements */
-}
-
-/* Admin panel specific styles */
-.admin-panel-text {
-  color: #000000 !important;
-}
-
-/* Improve visibility of sort dropdowns */
-.sort-dropdown {
-  color: #000000 !important;
-  background-color: white !important;
-  border: 1px solid #d1d5db !important;
-  padding: 0.5rem !important;
-}
-
-/* Improve visibility of settings tabs */
-button.text-gray-500 {
-  color: #4b5563 !important; /* gray-600 for better visibility */
-}
-
-/* Active tab styling */
-button.text-black {
-  font-weight: 600 !important;
-}
-
-/* Form field spacing and appearance */
-.form-group,
-.space-y-2,
-.space-y-6 > div,
-form > div {
-  margin-bottom: 1.5rem !important;
-}
-
-/* Improve focus states on form elements */
-input:focus,
 select:focus,
+input:focus,
 textarea:focus {
   outline: none !important;
-  border-color: #000000 !important;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1) !important;
+  border-color: var(--primary-500) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
 }
 
-/* Ensure proper border radius on all form elements */
-input,
-select,
-textarea,
-button {
-  border-radius: 0.375rem !important; /* Consistent with Tailwind's rounded-md */
+/* Admin panel modern styling */
+.admin-panel-text {
+  color: var(--foreground) !important;
+}
+
+.admin-nav-link {
+  padding: 12px 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.admin-nav-link:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--primary-700);
+}
+
+.admin-nav-link.active {
+  background: var(--primary-500);
+  color: white;
 }
