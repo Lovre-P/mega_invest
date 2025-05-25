@@ -1,51 +1,66 @@
-"use client";
-
+// This is a Server Component
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import LoadingSpinner from "@/components/LoadingSpinner";
-import { SkeletonGrid } from "@/components/SkeletonLoader";
+import dynamic from "next/dynamic"; // Import dynamic
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { RiskBadge } from "@/components/ui/Badge";
+// Card components are used by FeaturedInvestmentsSection, which will be dynamically imported
+// RiskBadge is used by FeaturedInvestmentsSection
+import { getInvestmentsByStatus } from "@/lib/server-db"; 
+import type { Metadata } from 'next';
 
-export default function Home() {
-  const [featuredInvestments, setFeaturedInvestments] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// Dynamically import the sections
+const DynamicFeaturesSection = dynamic(() => import('@/components/landing/FeaturesSection'), {
+  loading: () => <div className="h-96 bg-gray-100 flex items-center justify-center"><p>Loading Features...</p></div>,
+});
 
-  // Fetch featured investments from the API
-  useEffect(() => {
-    const fetchFeaturedInvestments = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+const DynamicFeaturedInvestmentsSection = dynamic(() => import('@/components/landing/FeaturedInvestmentsSection'), {
+  loading: () => <div className="h-96 bg-gray-100 flex items-center justify-center"><p>Loading Investments...</p></div>,
+});
 
-        // Only fetch active investments
-        const response = await fetch('/api/investments?status=Active');
-        const data = await response.json();
+const DynamicCallToActionSection = dynamic(() => import('@/components/landing/CallToActionSection'), {
+  loading: () => <div className="h-64 bg-gray-100 flex items-center justify-center"><p>Loading Call to Action...</p></div>,
+});
 
-        if (response.ok) {
-          // Get 3 random investments to feature
-          const shuffled = [...data.investments].sort(() => 0.5 - Math.random());
-          setFeaturedInvestments(shuffled.slice(0, 3));
-        } else {
-          setError(data.error || 'Failed to fetch investments');
-          console.error('Failed to fetch investments:', data.error);
-        }
-      } catch (error) {
-        setError('An unexpected error occurred. Please try again later.');
-        console.error('Error fetching investments:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+// Define Investment type based on expected structure
+interface Investment {
+  id: string;
+  title: string;
+  description: string;
+  expectedReturn: string;
+  minimumInvestment: string;
+  category: string;
+  risk: string;
+  status: string;
+  images?: string[];
+  mainImageId?: string;
+  // Add other fields if necessary
+}
 
-    fetchFeaturedInvestments();
-  }, []);
+export const metadata: Metadata = {
+  title: 'Mega Invest | Premium Investment Opportunities',
+  description: 'Mega Invest provides carefully selected investment opportunities for discerning investors. Grow your wealth with our expert-backed portfolio options.',
+};
+
+async function getFeaturedInvestments() {
+  try {
+    const activeInvestments: Investment[] = await getInvestmentsByStatus('Active');
+    if (activeInvestments && activeInvestments.length > 0) {
+      const shuffled = [...activeInvestments].sort(() => 0.5 - Math.random());
+      return { investments: shuffled.slice(0, 3), error: null };
+    }
+    return { investments: [], error: 'No active investments found to feature.' };
+  } catch (error) {
+    console.error('Error fetching featured investments:', error);
+    return { investments: [], error: 'Failed to fetch featured investments.' };
+  }
+}
+
+export default async function Home() {
+  const { investments: featuredInvestments, error } = await getFeaturedInvestments();
+
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
+      {/* Hero Section - remains the same */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Gradient Background */}
         <div className="absolute inset-0 gradient-hero"></div>
@@ -201,14 +216,11 @@ export default function Home() {
             </p>
           </div>
 
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-64">
-              <LoadingSpinner size="large" text="Loading investment opportunities..." />
-              <div className="mt-12 w-full">
-                <SkeletonGrid count={3} columns={3} />
-              </div>
-            </div>
-          ) : error ? (
+          {/* 
+            isLoading and client-side error display are removed. 
+            Server-side error or empty state is handled below.
+          */}
+          {error ? (
             <div className="mx-auto max-w-3xl mt-8">
               <div className="rounded-md bg-red-50 p-4">
                 <div className="flex">
@@ -222,27 +234,21 @@ export default function Home() {
                     <div className="mt-2 text-sm text-red-700">
                       <p>{error}</p>
                     </div>
-                    <div className="mt-4">
-                      <button
-                        type="button"
-                        onClick={() => window.location.reload()}
-                        className="rounded-md bg-red-50 px-2 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50"
-                      >
-                        Try again
-                      </button>
-                    </div>
+                    {/* "Try again" button might not be suitable here if data is server-fetched and static for the request. 
+                        A link to refresh or contact support might be better if this error persists.
+                        For now, removing the button as it implies client-side refetching. */}
                   </div>
                 </div>
               </div>
             </div>
-          ) : (
+          ) : featuredInvestments && featuredInvestments.length > 0 ? (
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {featuredInvestments.map((investment: any) => (
+              {featuredInvestments.map((investment: Investment) => ( // Added Investment type
                 <Card key={investment.id} variant="investment" className="group">
                   <div className="relative h-56 overflow-hidden rounded-t-2xl">
                     {investment.images && investment.images.length > 0 && investment.mainImageId ? (
                       <Image
-                        src={investment.images.find(img => img.includes(investment.mainImageId)) || investment.images[0]}
+                        src={investment.images.find(img => img.includes(investment.mainImageId!)) || investment.images[0]}
                         alt={investment.title}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -303,9 +309,20 @@ export default function Home() {
                 </Card>
               ))}
             </div>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-lg text-gray-500">No featured investments available at the moment.</p>
+              {/* Optionally, link to all investments page */}
+              <div className="mt-6">
+                <Button variant="outline" asChild>
+                  <Link href="/investments">View All Investments</Link>
+                </Button>
+              </div>
+            </div>
           )}
 
           <div className="mt-16 text-center">
+            {/* This button is fine as is, links to another page */}
             <Button
               variant="outline"
               size="lg"

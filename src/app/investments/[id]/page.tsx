@@ -1,59 +1,94 @@
-"use client";
+// Removed "use client" to make it a Server Component
 
-import { useState, useEffect } from "react";
-import { use } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import ImageGallery from "@/components/ImageGallery";
+import ImageGallery from "@/components/ImageGallery"; // This is a Client Component
+import { getInvestmentById, getInvestments } from "@/lib/server-db"; // Server-side data fetching
+import { notFound } from "next/navigation";
+import type { Metadata, ResolvingMetadata } from 'next';
 
-export default function InvestmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  // Unwrap params using React.use()
-  const resolvedParams = use(params);
-  const id = resolvedParams.id;
+// Define Investment type based on expected structure from getInvestmentById
+interface Investment {
+  id: string;
+  title: string;
+  description: string;
+  expectedReturn: string;
+  minimumInvestment: string;
+  category: string;
+  risk: string;
+  status: string; // Assuming status is part of the fetched data
+  detailedDescription: string;
+  images?: string[]; // Assuming images is an array of strings
+  mainImageId?: string; // Assuming mainImageId is a string
+  // Add any other fields that are used in the component
+}
 
-  const [investment, setInvestment] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+interface InvestmentDetailPageProps {
+  params: { id: string };
+}
 
-  useEffect(() => {
-    const fetchInvestment = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(`/api/investments/${id}`);
-        const data = await response.json();
+// Function to generate static paths
+export async function generateStaticParams() {
+  const investments = await getInvestments(); // Fetch all investments
+  return investments.map((investment) => ({
+    id: investment.id,
+  }));
+}
 
-        if (response.ok) {
-          setInvestment(data.investment);
-        } else {
-          setError(data.error || "Failed to fetch investment details");
-        }
-      } catch (error) {
-        console.error("Error fetching investment:", error);
-        setError("An error occurred while fetching the investment details");
-      } finally {
-        setIsLoading(false);
-      }
+// Function to generate metadata
+export async function generateMetadata(
+  { params }: InvestmentDetailPageProps,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const id = params.id;
+  const investment = await getInvestmentById(id);
+
+  if (!investment) {
+    return {
+      title: "Investment Not Found",
+      description: "The requested investment could not be found.",
     };
-
-    fetchInvestment();
-  }, [id]);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
-      </div>
-    );
   }
 
-  if (error || !investment) {
+  return {
+    title: `${investment.title} | Mega Invest`,
+    description: investment.description,
+    openGraph: {
+      title: investment.title,
+      description: investment.description,
+      images: investment.images && investment.mainImageId 
+        ? [investment.images.find(img => img.includes(investment.mainImageId)) || investment.images[0]] 
+        : [`https://picsum.photos/seed/${300 + parseInt(id.slice(-3), 36)}/1200/600`],
+    },
+  };
+}
+
+
+export default async function InvestmentDetailPage({ params }: InvestmentDetailPageProps) {
+  const id = params.id;
+  const investment: Investment | undefined = await getInvestmentById(id);
+
+  if (!investment) {
+    notFound(); // Use Next.js notFound for 404
+  }
+
+  // No isLoading or error states needed here as data is fetched server-side
+  // If investment is not found, notFound() will handle it.
+  // Error handling for getInvestmentById should be done within the function or by Next.js error boundaries.
+
+  // The 'error' variable from client-side fetching is no longer relevant in this server component context
+  // for the primary data. If the data fetch fails, it would typically result in a build error for SSG
+  // or a server error caught by Next.js error handling for SSR.
+  // For this SSG setup, if getInvestmentById returns undefined, notFound() is called.
+
+  if (!investment) { // This check is technically redundant due to notFound() above but good for clarity
     return (
       <div className="bg-white py-16">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              {error || "Investment not found"}
+              Investment not found
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
               We couldn't find the investment you're looking for. Please try again or browse our other opportunities.

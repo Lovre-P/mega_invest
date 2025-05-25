@@ -6,8 +6,13 @@ import {
   getInvestments,
   getInvestmentsByStatus,
   InvestmentStatus,
-  Investment
+  Investment,
+  // getUsers is available from server-db but not used directly in this file before
 } from '@/lib/server-db';
+// Import getLeads directly from db.ts as it's not wrapped in server-db.ts
+import { getLeads as dbGetLeads } from '@/lib/db'; 
+// Import types
+import type { Lead } from '@/lib/db-query'; // Lead type
 import { authenticateUser, setSessionCookie, clearSessionCookie } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
@@ -204,4 +209,100 @@ export async function logoutAdmin() {
 export async function getPendingInvestments(): Promise<Investment[]> {
   // Use the server-side function to get pending investments
   return getInvestmentsByStatus('Pending');
+}
+
+interface AdminDashboardStats {
+  totalInvestments: number;
+  activeInvestments: number;
+  pendingInvestments: number;
+  newLeadsThisMonth: number;
+}
+
+interface FormattedLead {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  interest: string;
+  date: string;
+}
+
+interface AdminDashboardData {
+  stats: AdminDashboardStats;
+  recentLeads: FormattedLead[];
+  error?: string;
+}
+
+export async function getAdminDashboardData(): Promise<AdminDashboardData> {
+  try {
+    const [investmentsData, leadsData] = await Promise.all([
+      getInvestments(), // From server-db
+      dbGetLeads()      // Directly from db.ts
+    ]);
+
+    if (!investmentsData) { // Should be an array, check if null/undefined if db can return that
+      console.error("Failed to fetch investments for dashboard");
+      // Fallback or throw error
+      // For now, let's assume getInvestments always returns an array (empty if error or no data)
+    }
+    if (!leadsData) { // Similar check for leadsData
+      console.error("Failed to fetch leads for dashboard");
+    }
+    
+    const allInvestments = investmentsData || [];
+    const allLeads = leadsData || [];
+
+    const totalInvestments = allInvestments.length;
+    const activeInvestments = allInvestments.filter(
+      (investment: Investment) => investment.status === 'Active'
+    ).length;
+    const pendingInvestments = allInvestments.filter(
+      (investment: Investment) => investment.status === 'Pending'
+    ).length;
+
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+
+    const newLeadsThisMonth = allLeads.filter((lead: Lead) => {
+      const leadDate = new Date(lead.createdAt);
+      return leadDate.getMonth() === currentMonth && leadDate.getFullYear() === currentYear;
+    }).length;
+
+    const sortedLeads = [...allLeads].sort((a: Lead, b: Lead) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    ).slice(0, 5);
+
+    const formattedLeads: FormattedLead[] = sortedLeads.map((lead: Lead) => ({
+      id: lead.id,
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone || 'N/A',
+      interest: lead.investmentInterest || 'General inquiry',
+      date: new Date(lead.createdAt).toISOString().split('T')[0],
+    }));
+
+    return {
+      stats: {
+        totalInvestments,
+        activeInvestments,
+        pendingInvestments,
+        newLeadsThisMonth,
+      },
+      recentLeads: formattedLeads,
+    };
+
+  } catch (error) {
+    console.error('Error fetching admin dashboard data:', error);
+    return {
+      stats: {
+        totalInvestments: 0,
+        activeInvestments: 0,
+        pendingInvestments: 0,
+        newLeadsThisMonth: 0,
+      },
+      recentLeads: [],
+      error: 'Failed to load dashboard data.',
+    };
+  }
 }

@@ -26,7 +26,11 @@ export async function GET(
       return createNotFoundResponse('Investment not found');
     }
 
-    return createSuccessResponse({ investment });
+    return createSuccessResponse(
+      { investment },
+      200,
+      { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=240' }
+    );
   } catch (error) {
     logError(error as Error, { context: `Fetching investment ${id}` });
     return createErrorResponse(
@@ -50,13 +54,18 @@ export async function PUT(
       return createBadRequestResponse(validationError.message);
     }
 
-    const success = await updateInvestment(id, updatedInvestment);
+    const updatedInvestmentResult = await updateInvestment(id, updatedInvestment); // Now returns Investment | null
 
-    if (success) {
-      return createSuccessResponse({ message: 'Investment updated successfully' });
+    if (updatedInvestmentResult) {
+      // Optionally, can return the updated investment data in the response
+      return createSuccessResponse({ 
+        message: 'Investment updated successfully', 
+        investment: updatedInvestmentResult 
+      });
     } else {
       // This could be DB_NOT_FOUND if the item wasn't there, or DB_WRITE_ERROR if update itself failed
       // For simplicity, using DB_WRITE_ERROR as the primary assumption for a failed update operation
+      // updateInvestment now returns null if not found or write failed.
       return createErrorResponse(
         new DatabaseError(`Investment not found or update failed for ID: ${id}`, ErrorCodes.DB_WRITE_ERROR)
       );

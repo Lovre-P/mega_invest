@@ -1,10 +1,14 @@
-import { readData } from './db';
-import path from 'path';
+// import { readData } from './db'; // No longer used
+// import path from 'path'; // No longer used
 
-// Define the paths to our JSON files
-const investmentsPath = path.join(process.cwd(), 'src/data/investments.json');
-const usersPath = path.join(process.cwd(), 'src/data/users.json');
-const leadsPath = path.join(process.cwd(), 'src/data/leads.json');
+// Data paths are now handled by functions imported from './db'
+
+// Import the actual data access functions from db.ts
+import { 
+  getInvestments as dbGetInvestments, 
+  getUsers as dbGetUsers 
+  // getLeads as dbGetLeads // If needed for future lead query functions
+} from './db';
 
 // Define types for better type safety
 export type InvestmentStatus = 'Active' | 'Inactive' | 'Pending' | 'Rejected' | 'Draft';
@@ -55,16 +59,12 @@ export interface Lead {
  * @param status The status to filter by (optional)
  * @returns Array of investments matching the status, or all investments if no status provided
  */
-export function getInvestmentsByStatus(status?: InvestmentStatus): Investment[] {
-  const data = readData(investmentsPath);
-  if (!data) return [];
-
-  const investments = data.investments as Investment[];
-
+export async function getInvestmentsByStatus(status?: InvestmentStatus): Promise<Investment[]> {
+  const investments = await dbGetInvestments();
+  // dbGetInvestments returns [] if data is null or investments array is missing.
   if (!status) {
     return investments;
   }
-
   return investments.filter(investment => investment.status === status);
 }
 
@@ -73,12 +73,8 @@ export function getInvestmentsByStatus(status?: InvestmentStatus): Investment[] 
  * @param email The email of the user who submitted the investments
  * @returns Array of investments submitted by the user
  */
-export function getInvestmentsBySubmitter(email: string): Investment[] {
-  const data = readData(investmentsPath);
-  if (!data) return [];
-
-  const investments = data.investments as Investment[];
-
+export async function getInvestmentsBySubmitter(email: string): Promise<Investment[]> {
+  const investments = await dbGetInvestments();
   return investments.filter(investment => investment.submittedBy === email);
 }
 
@@ -87,12 +83,8 @@ export function getInvestmentsBySubmitter(email: string): Investment[] {
  * @param email The email of the admin who reviewed the investments
  * @returns Array of investments reviewed by the admin
  */
-export function getInvestmentsByReviewer(email: string): Investment[] {
-  const data = readData(investmentsPath);
-  if (!data) return [];
-
-  const investments = data.investments as Investment[];
-
+export async function getInvestmentsByReviewer(email: string): Promise<Investment[]> {
+  const investments = await dbGetInvestments();
   return investments.filter(investment => investment.reviewedBy === email);
 }
 
@@ -101,12 +93,8 @@ export function getInvestmentsByReviewer(email: string): Investment[] {
  * @param category The category to filter by
  * @returns Array of investments in the specified category
  */
-export function getInvestmentsByCategory(category: string): Investment[] {
-  const data = readData(investmentsPath);
-  if (!data) return [];
-
-  const investments = data.investments as Investment[];
-
+export async function getInvestmentsByCategory(category: string): Promise<Investment[]> {
+  const investments = await dbGetInvestments();
   return investments.filter(investment => investment.category === category);
 }
 
@@ -115,12 +103,8 @@ export function getInvestmentsByCategory(category: string): Investment[] {
  * @param risk The risk level to filter by
  * @returns Array of investments with the specified risk level
  */
-export function getInvestmentsByRisk(risk: string): Investment[] {
-  const data = readData(investmentsPath);
-  if (!data) return [];
-
-  const investments = data.investments as Investment[];
-
+export async function getInvestmentsByRisk(risk: string): Promise<Investment[]> {
+  const investments = await dbGetInvestments();
   return investments.filter(investment => investment.risk === risk);
 }
 
@@ -129,12 +113,8 @@ export function getInvestmentsByRisk(risk: string): Investment[] {
  * @param date The date to filter by
  * @returns Array of investments created after the specified date
  */
-export function getInvestmentsCreatedAfter(date: Date): Investment[] {
-  const data = readData(investmentsPath);
-  if (!data) return [];
-
-  const investments = data.investments as Investment[];
-
+export async function getInvestmentsCreatedAfter(date: Date): Promise<Investment[]> {
+  const investments = await dbGetInvestments();
   return investments.filter(investment => {
     const createdAt = new Date(investment.createdAt);
     return createdAt > date;
@@ -146,13 +126,9 @@ export function getInvestmentsCreatedAfter(date: Date): Investment[] {
  * @param searchTerm The term to search for
  * @returns Array of investments matching the search term
  */
-export function searchInvestments(searchTerm: string): Investment[] {
-  const data = readData(investmentsPath);
-  if (!data) return [];
-
-  const investments = data.investments as Investment[];
+export async function searchInvestments(searchTerm: string): Promise<Investment[]> {
+  const investments = await dbGetInvestments();
   const term = searchTerm.toLowerCase();
-
   return investments.filter(investment =>
     investment.title.toLowerCase().includes(term) ||
     investment.description.toLowerCase().includes(term) ||
@@ -165,12 +141,8 @@ export function searchInvestments(searchTerm: string): Investment[] {
  * @param role The role to filter by
  * @returns Array of users with the specified role
  */
-export function getUsersByRole(role: string): User[] {
-  const data = readData(usersPath);
-  if (!data) return [];
-
-  const users = data.users as User[];
-
+export async function getUsersByRole(role: string): Promise<User[]> {
+  const users = await dbGetUsers();
   return users.filter(user => user.role === role);
 }
 
@@ -179,13 +151,9 @@ export function getUsersByRole(role: string): User[] {
  * @param searchTerm The term to search for
  * @returns Array of users matching the search term
  */
-export function searchUsers(searchTerm: string): User[] {
-  const data = readData(usersPath);
-  if (!data) return [];
-
-  const users = data.users as User[];
+export async function searchUsers(searchTerm: string): Promise<User[]> {
+  const users = await dbGetUsers();
   const term = searchTerm.toLowerCase();
-
   return users.filter(user =>
     user.name.toLowerCase().includes(term) ||
     user.email.toLowerCase().includes(term)

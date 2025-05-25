@@ -32,7 +32,11 @@ export async function GET(request: NextRequest) {
       return userWithoutPassword;
     });
 
-    return createSuccessResponse({ users: usersWithoutPasswords });
+    return createSuccessResponse(
+      { users: usersWithoutPasswords },
+      200,
+      { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' }
+    );
   } catch (error) {
     logError(error as Error, { context: 'Fetching all users' });
     return createErrorResponse(
@@ -63,12 +67,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email already exists
-    const existingUsers = await getUsers(); // This could throw, caught by outer catch
-    const emailExists = existingUsers.some((existingUser: any) =>
-      existingUser.email === user.email
-    );
+    // const existingUsers = await getUsers(); // This could throw, caught by outer catch
+    // const emailExists = existingUsers.some((existingUser: any) =>
+    //   existingUser.email === user.email
+    // );
+    //
+    // if (emailExists) {
+    //   return createConflictResponse(`User with email ${user.email} already exists.`);
+    // }
 
-    if (emailExists) {
+    // Optimized check:
+    const existingUserByEmail = await getUserByEmail(user.email);
+    if (existingUserByEmail) {
       return createConflictResponse(`User with email ${user.email} already exists.`);
     }
 

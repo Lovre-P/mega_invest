@@ -5,10 +5,15 @@ import { formatErrorResponse } from './error-handler';
  * Create a success response for API endpoints
  * @param data Data to include in the response
  * @param status HTTP status code (default: 200)
+ * @param headers Optional custom headers to include in the response
  * @returns NextResponse with the data
  */
-export function createSuccessResponse(data: any, status: number = 200): NextResponse {
-  return NextResponse.json(data, { status });
+export function createSuccessResponse(
+  data: any, 
+  status: number = 200, 
+  headers?: HeadersInit
+): NextResponse {
+  return NextResponse.json(data, { status, headers });
 }
 
 /**

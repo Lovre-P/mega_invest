@@ -1,12 +1,107 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, memo } from "react"; // Added useCallback and memo
 import Link from "next/link";
 import { Switch } from "@headlessui/react";
 
+// Define Investment type based on usage in the component
+interface Investment {
+  id: string;
+  title: string;
+  category: string;
+  expectedReturn: string;
+  minimumInvestment: string;
+  risk: string;
+  status: "Active" | "Inactive" | "Pending" | "Rejected" | "Draft" | string; // string for other potential statuses
+  // Add other fields if necessary from your data structure
+}
+
+interface InvestmentRowProps {
+  investment: Investment;
+  onToggleStatus: (investment: Investment) => void;
+  onDelete: (id: string) => void;
+}
+
+const InvestmentRow = memo(({ investment, onToggleStatus, onDelete }: InvestmentRowProps) => {
+  // console.log(`Rendering InvestmentRow: ${investment.title}`); // For debugging re-renders
+  return (
+    <tr key={investment.id}>
+      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+        {investment.title}
+      </td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{investment.category}</td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{investment.expectedReturn}</td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{investment.minimumInvestment}</td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+          investment.risk === "Low"
+            ? "bg-green-100 text-green-800"
+            : investment.risk === "Moderate"
+            ? "bg-yellow-100 text-yellow-800"
+            : "bg-red-100 text-red-800"
+        }`}>
+          {investment.risk}
+        </span>
+      </td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+            investment.status === "Active"
+              ? "bg-green-100 text-green-800"
+              : investment.status === "Inactive"
+              ? "bg-gray-100 text-gray-800"
+              : investment.status === "Pending"
+              ? "bg-yellow-100 text-yellow-800"
+              : investment.status === "Rejected"
+              ? "bg-red-100 text-red-800"
+              : investment.status === "Draft"
+              ? "bg-gray-100 text-gray-800"
+              : "bg-gray-100 text-gray-800"
+          }`}>
+            {investment.status}
+          </span>
+          {(investment.status === "Active" || investment.status === "Inactive") && (
+            <Switch
+              checked={investment.status === "Active"}
+              onChange={() => onToggleStatus(investment)}
+              className={`${
+                investment.status === "Active" ? "bg-green-600" : "bg-gray-200"
+              } relative inline-flex h-5 w-10 items-center rounded-full`}
+            >
+              <span className="sr-only">
+                {investment.status === "Active" ? "Deactivate" : "Activate"} {investment.title}
+              </span>
+              <span
+                className={`${
+                  investment.status === "Active" ? "translate-x-6" : "translate-x-1"
+                } inline-block h-3 w-3 transform rounded-full bg-white transition`}
+              />
+            </Switch>
+          )}
+        </div>
+      </td>
+      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+        <Link
+          href={`/admin/investments/${investment.id}`}
+          className="text-black hover:text-gray-700 mr-4"
+        >
+          Edit<span className="sr-only">, {investment.title}</span>
+        </Link>
+        <button
+          onClick={() => onDelete(investment.id)}
+          className="text-red-600 hover:text-red-900"
+        >
+          Delete<span className="sr-only">, {investment.title}</span>
+        </button>
+      </td>
+    </tr>
+  );
+});
+InvestmentRow.displayName = 'InvestmentRow'; // For better debugging
+
 export default function AdminInvestmentsPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [investments, setInvestments] = useState([]);
+  const [investments, setInvestments] = useState<Investment[]>([]); // Use Investment type
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch investments from the API
@@ -18,7 +113,7 @@ export default function AdminInvestmentsPage() {
         const data = await response.json();
 
         if (response.ok) {
-          setInvestments(data.investments);
+          setInvestments(data.investments as Investment[]); // Cast to Investment[]
         } else {
           console.error('Failed to fetch investments:', data.error);
         }
@@ -34,13 +129,13 @@ export default function AdminInvestmentsPage() {
 
   // Filter investments based on search term
   const filteredInvestments = investments.filter(
-    (investment: any) =>
+    (investment: Investment) => // Use Investment type
       investment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       investment.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
       investment.status.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDeleteInvestment = async (id: string) => {
+  const handleDeleteInvestment = useCallback(async (id: string) => { // Wrapped in useCallback
     if (!confirm('Are you sure you want to delete this investment?')) {
       return;
     }
@@ -52,7 +147,7 @@ export default function AdminInvestmentsPage() {
 
       if (response.ok) {
         // Update the local state to remove the deleted investment
-        setInvestments(investments.filter((investment: any) => investment.id !== id));
+        setInvestments(prevInvestments => prevInvestments.filter(inv => inv.id !== id));
       } else {
         const data = await response.json();
         alert(`Failed to delete investment: ${data.error || 'Unknown error'}`);
@@ -61,9 +156,9 @@ export default function AdminInvestmentsPage() {
       console.error('Error deleting investment:', error);
       alert('An error occurred while deleting the investment');
     }
-  };
+  }, []); // Empty dependency array as it doesn't depend on component state/props directly for its definition
 
-  const handleToggleStatus = async (investment: any) => {
+  const handleToggleStatus = useCallback(async (investment: Investment) => { // Wrapped in useCallback, use Investment type
     // Toggle between "Active" and "Inactive"
     const newStatus = investment.status === "Active" ? "Inactive" : "Active";
 
@@ -74,15 +169,21 @@ export default function AdminInvestmentsPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...investment,
-          status: newStatus
+          // Send only necessary fields for update, if backend supports partial updates.
+          // For now, sending what was there, assuming backend merges.
+          // Ideally: status: newStatus, and any other necessary fields like title, category for validation.
+          // The current backend implementation of updateInvestment merges, so this is okay.
+          title: investment.title, // Required by API validation
+          description: investment.description, // Required by API validation
+          category: investment.category, // Required by API validation
+          status: newStatus 
         }),
       });
 
       if (response.ok) {
         // Update the local state to reflect the new status
-        setInvestments(
-          investments.map((inv: any) =>
+        setInvestments(prevInvestments =>
+          prevInvestments.map(inv =>
             inv.id === investment.id ? { ...inv, status: newStatus } : inv
           )
         );
@@ -94,7 +195,7 @@ export default function AdminInvestmentsPage() {
       console.error('Error updating investment status:', error);
       alert('An error occurred while updating the investment status');
     }
-  };
+  }, []); // Empty dependency array
 
   if (isLoading) {
     return (
@@ -196,77 +297,13 @@ export default function AdminInvestmentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredInvestments.map((investment: any) => (
-                    <tr key={investment.id}>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                        {investment.title}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{investment.category}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{investment.expectedReturn}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{investment.minimumInvestment}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          investment.risk === "Low"
-                            ? "bg-green-100 text-green-800"
-                            : investment.risk === "Moderate"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}>
-                          {investment.risk}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            investment.status === "Active"
-                              ? "bg-green-100 text-green-800"
-                              : investment.status === "Inactive"
-                              ? "bg-gray-100 text-gray-800"
-                              : investment.status === "Pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : investment.status === "Rejected"
-                              ? "bg-red-100 text-red-800"
-                              : investment.status === "Draft"
-                              ? "bg-gray-100 text-gray-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}>
-                            {investment.status}
-                          </span>
-                          {(investment.status === "Active" || investment.status === "Inactive") && (
-                            <Switch
-                              checked={investment.status === "Active"}
-                              onChange={() => handleToggleStatus(investment)}
-                              className={`${
-                                investment.status === "Active" ? "bg-green-600" : "bg-gray-200"
-                              } relative inline-flex h-5 w-10 items-center rounded-full`}
-                            >
-                              <span className="sr-only">
-                                {investment.status === "Active" ? "Deactivate" : "Activate"} {investment.title}
-                              </span>
-                              <span
-                                className={`${
-                                  investment.status === "Active" ? "translate-x-6" : "translate-x-1"
-                                } inline-block h-3 w-3 transform rounded-full bg-white transition`}
-                              />
-                            </Switch>
-                          )}
-                        </div>
-                      </td>
-                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <Link
-                          href={`/admin/investments/${investment.id}`}
-                          className="text-black hover:text-gray-700 mr-4"
-                        >
-                          Edit<span className="sr-only">, {investment.title}</span>
-                        </Link>
-                        <button
-                          onClick={() => handleDeleteInvestment(investment.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete<span className="sr-only">, {investment.title}</span>
-                        </button>
-                      </td>
-                    </tr>
+                  {filteredInvestments.map((investment: Investment) => (
+                    <InvestmentRow
+                      key={investment.id}
+                      investment={investment}
+                      onToggleStatus={handleToggleStatus}
+                      onDelete={handleDeleteInvestment}
+                    />
                   ))}
                 </tbody>
               </table>

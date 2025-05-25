@@ -23,7 +23,11 @@ export async function GET(
       return createNotFoundResponse(`Lead with ID ${id} not found`);
     }
     
-    return createSuccessResponse({ lead });
+    return createSuccessResponse(
+      { lead },
+      200,
+      { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' }
+    );
   } catch (error) {
     logError(error as Error, { context: `Fetching lead with ID ${id}` });
     return createErrorResponse(

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
-import { getInvestments, createInvestment } from '@/lib/db';
+// getInvestments is now a cached function from db.ts
+import { getInvestments, createInvestment } from '@/lib/db'; 
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -7,9 +8,10 @@ import {
 } from '@/lib/api-response';
 import { DatabaseError, ValidationError, ErrorCodes } from '@/lib/error-handler';
 
+// Modified GET to include Cache-Control headers
 export async function GET(request: NextRequest) {
   try {
-    const investments = await getInvestments();
+    const investments = await getInvestments(); // This uses the server-cached version
 
     // Handle query parameters for filtering
     const { searchParams } = new URL(request.url);
@@ -37,13 +39,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return createSuccessResponse({ investments: filteredInvestments });
+    return createSuccessResponse(
+      { investments: filteredInvestments },
+      200,
+      // Cache for 1 minute on CDN, allow stale for 2 minutes while revalidating for client
+      { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' } 
+    );
   } catch (error) {
     if (error instanceof DatabaseError) {
       return createErrorResponse(error);
     }
 
-    // For unknown errors, create a generic error response
     const dbError = new DatabaseError(
       'Failed to fetch investments',
       ErrorCodes.DB_READ_ERROR,

@@ -4,96 +4,107 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export default function AdminDashboardPage() {
+import { getAdminDashboardData } from "@/app/actions"; // Import the new server action
+
+// Define types for stats and leads that match the server action's return type
+interface StatItem {
+  name: string;
+  value: string;
+  highlight?: boolean;
+}
+interface RecentLeadItem {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  interest: string;
+  date: string;
+}
+
+export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState([
+  const [stats, setStats] = useState<StatItem[]>([ // Typed state
     { name: "Total Investments", value: "0" },
     { name: "Active Investments", value: "0" },
     { name: "Pending Investments", value: "0", highlight: true },
     { name: "New Leads (This Month)", value: "0" },
   ]);
-  const [recentLeads, setRecentLeads] = useState([]);
+  const [recentLeads, setRecentLeads] = useState<RecentLeadItem[]>([]); // Typed state
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch dashboard data
+  // Fetch dashboard data using the server action
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const loadDashboardData = async () => {
       try {
         setIsLoading(true);
+        setError(null);
+        const data = await getAdminDashboardData();
 
-        // Fetch investments
-        const investmentsResponse = await fetch('/api/investments');
-        const investmentsData = await investmentsResponse.json();
-
-        // Fetch users
-        const usersResponse = await fetch('/api/users');
-        const usersData = await usersResponse.json();
-
-        // Fetch leads
-        const leadsResponse = await fetch('/api/leads');
-        const leadsData = await leadsResponse.json();
-
-        if (investmentsResponse.ok && usersResponse.ok && leadsResponse.ok) {
-          // Calculate stats
-          const totalInvestments = investmentsData.investments.length;
-          const activeInvestments = investmentsData.investments.filter(
-            (investment: any) => investment.status === 'Active'
-          ).length;
-          const pendingInvestments = investmentsData.investments.filter(
-            (investment: any) => investment.status === 'Pending'
-          ).length;
-          const totalUsers = usersData.users.length;
-
-          // Get current month leads
-          const currentDate = new Date();
-          const currentMonth = currentDate.getMonth();
-          const currentYear = currentDate.getFullYear();
-
-          const currentMonthLeads = leadsData.leads.filter((lead: any) => {
-            const leadDate = new Date(lead.createdAt);
-            return leadDate.getMonth() === currentMonth && leadDate.getFullYear() === currentYear;
-          }).length;
-
-          // Update stats
+        if (data.error) {
+          setError(data.error);
+          console.error('Error fetching dashboard data:', data.error);
+          // Keep existing stats or reset them
           setStats([
-            { name: "Total Investments", value: totalInvestments.toString() },
-            { name: "Active Investments", value: activeInvestments.toString() },
-            { name: "Pending Investments", value: pendingInvestments.toString(), highlight: true },
-            { name: "New Leads (This Month)", value: currentMonthLeads.toString() },
+            { name: "Total Investments", value: "0" },
+            { name: "Active Investments", value: "0" },
+            { name: "Pending Investments", value: "0", highlight: true },
+            { name: "New Leads (This Month)", value: "0" },
           ]);
-
-          // Get recent leads (up to 5)
-          const sortedLeads = [...leadsData.leads].sort((a: any, b: any) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          ).slice(0, 5);
-
-          // Format leads for display
-          const formattedLeads = sortedLeads.map((lead: any) => {
-            const leadDate = new Date(lead.createdAt);
-            return {
-              id: lead.id,
-              name: lead.name,
-              email: lead.email,
-              phone: lead.phone || 'N/A',
-              interest: lead.investmentInterest || 'General inquiry',
-              date: leadDate.toISOString().split('T')[0],
-            };
-          });
-
-          setRecentLeads(formattedLeads);
+          setRecentLeads([]);
+        } else {
+          // Update stats from server action data
+          setStats([
+            { name: "Total Investments", value: data.stats.totalInvestments.toString() },
+            { name: "Active Investments", value: data.stats.activeInvestments.toString() },
+            { name: "Pending Investments", value: data.stats.pendingInvestments.toString(), highlight: true },
+            { name: "New Leads (This Month)", value: data.stats.newLeadsThisMonth.toString() },
+          ]);
+          setRecentLeads(data.recentLeads);
         }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+      } catch (err) {
+        // Catch any unexpected errors from the action call itself
+        console.error('Unexpected error fetching dashboard data:', err);
+        setError('An unexpected error occurred.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchDashboardData();
+    loadDashboardData();
   }, []);
 
-  if (isLoading) {
+  if (isLoading) { // isLoading state is still useful for the initial load indication
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      </div>
+    );
+  }
+  
+  // Display error message if fetching failed
+  if (error) {
+    return (
+      <div className="rounded-md bg-red-50 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Error</h3>
+            <div className="mt-2 text-sm text-red-700">
+              <p>{error}</p>
+            </div>
+             <button
+                type="button"
+                onClick={() => window.location.reload()} // Simple reload, or could trigger loadDashboardData again
+                className="mt-4 rounded-md bg-red-100 px-2 py-1.5 text-sm font-medium text-red-800 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50"
+              >
+                Try again
+              </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -116,7 +127,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats - content remains the same, but data source is now different */}
       <div className="mt-8">
         <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (

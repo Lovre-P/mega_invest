@@ -28,7 +28,11 @@ export async function GET(
     // Remove password from the response
     const { password, ...userWithoutPassword } = user;
     
-    return createSuccessResponse({ user: userWithoutPassword });
+    return createSuccessResponse(
+      { user: userWithoutPassword },
+      200,
+      { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=240' }
+    );
   } catch (error) {
     logError(error as Error, { context: `Fetching user with ID ${id}` });
     return createErrorResponse(
@@ -63,23 +67,18 @@ export async function PUT(
         return createBadRequestResponse('Password updates are not allowed via this endpoint. Please use a dedicated password change function.');
     }
 
-    const success = await updateUser(id, updatedUser);
+    const updatedUserResult = await updateUser(id, updatedUser); // Now returns User | null
     
-    if (success) {
-      // Get the updated user to return it (ensure it's the version from the DB)
-      const user = await getUserById(id); 
-      if (!user) {
-        // This case should ideally not happen if updateUser succeeded and ID is correct
-        logError(new Error(`User with ID ${id} not found after successful update.`), { context: 'Post-update user fetch' });
-        return createNotFoundResponse(`User with ID ${id} not found after update.`);
-      }
-      const { password, ...userWithoutPassword } = user;
+    if (updatedUserResult) {
+      // No need to call getUserById(id) again
+      const { password, ...userWithoutPassword } = updatedUserResult;
       return createSuccessResponse({
         message: 'User updated successfully',
         user: userWithoutPassword
       });
     } else {
       // This could be DB_NOT_FOUND if the item wasn't there, or DB_WRITE_ERROR if update itself failed
+      // updateUser now returns null if user not found or write failed.
       return createErrorResponse(
         new DatabaseError(`User not found or update failed for ID: ${id}`, ErrorCodes.DB_WRITE_ERROR)
       );

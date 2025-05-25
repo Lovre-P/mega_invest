@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { unstable_cache as nextCache, revalidateTag } from 'next/cache'; // Import unstable_cache and revalidateTag
 import { writeJSONWithLock, readJSONWithLock } from './db-lock';
 import { backupFile } from './backup';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
@@ -33,15 +34,35 @@ async function writeDataAsync(filePath: string, data: any): Promise<boolean> {
 }
 
 // Investment functions
-export async function getInvestments(): Promise<Investment[]> {
-  const data = await readDataAsync<{ investments: Investment[] }>(investmentsPath);
-  return data ? data.investments : [];
-}
+export const getInvestments = nextCache(
+  async (): Promise<Investment[]> => {
+    const data = await readDataAsync<{ investments: Investment[] }>(investmentsPath);
+    return data ? data.investments : [];
+  },
+  ['investments-all'], // Cache key part
+  {
+    revalidate: 60, // Revalidate every 60 seconds
+    tags: ['investments'], // Tag for potential on-demand revalidation
+  }
+);
 
-export async function getInvestmentById(id: string): Promise<Investment | undefined> {
-  const investments = await getInvestments();
-  return investments.find((investment: Investment) => investment.id === id);
-}
+export const getInvestmentById = nextCache(
+  async (id: string): Promise<Investment | undefined> => {
+    // Note: Caching getInvestments() means this find is on potentially cached data.
+    // If getInvestments itself were not cached, this function would be a primary candidate for caching.
+    // Given getInvestments IS cached, the benefit here is reduced unless getInvestments has a very short TTL
+    // and this function needs a longer one for individual items.
+    // For consistency and to allow individual item caching if getInvestments caching changes, we wrap it.
+    const investments = await getInvestments(); 
+    return investments.find((investment: Investment) => investment.id === id);
+  },
+  ['investment-by-id'], // Cache key part (id will be implicitly part of the full key)
+  {
+    revalidate: 120, // Potentially longer TTL for individual items
+    tags: ['investments'], // Simplified tag, specific item invalidation is complex with current setup
+  }
+);
+// Removed getInvestmentByIdTag as dynamic tags in unstable_cache are not directly used by revalidateTag in the same way.
 
 export async function createInvestment(investment: Partial<Investment>): Promise<boolean> {
   const data = await readDataAsync<{ investments: Investment[] }>(investmentsPath);
@@ -81,15 +102,19 @@ export async function createInvestment(investment: Partial<Investment>): Promise
   }
 
   data.investments.push(investment as Investment); // Ensure type compatibility
-  return await writeDataAsync(investmentsPath, data);
+  const success = await writeDataAsync(investmentsPath, data);
+  if (success) {
+    revalidateTag('investments');
+  }
+  return success;
 }
 
-export async function updateInvestment(id: string, updatedInvestment: Partial<Investment>): Promise<boolean> {
+export async function updateInvestment(id: string, updatedInvestment: Partial<Investment>): Promise<Investment | null> {
   const data = await readDataAsync<{ investments: Investment[] }>(investmentsPath);
-  if (!data) return false;
+  if (!data) return null;
 
   const index = data.investments.findIndex((investment: Investment) => investment.id === id);
-  if (index === -1) return false;
+  if (index === -1) return null;
 
   // Update the timestamp
   updatedInvestment.updatedAt = new Date().toISOString();
@@ -105,8 +130,15 @@ export async function updateInvestment(id: string, updatedInvestment: Partial<In
     updatedInvestment.submittedAt = data.investments[index].submittedAt;
   }
 
-  data.investments[index] = { ...data.investments[index], ...updatedInvestment };
-  return await writeDataAsync(investmentsPath, data);
+  const investmentToUpdate = { ...data.investments[index], ...updatedInvestment };
+  data.investments[index] = investmentToUpdate;
+
+  const success = await writeDataAsync(investmentsPath, data);
+  if (success) {
+    revalidateTag('investments');
+    // revalidateTag(getInvestmentByIdTag(id)); // If specific item revalidation was set up differently
+  }
+  return success ? investmentToUpdate : null;
 }
 
 export async function deleteInvestment(id: string): Promise<boolean> {
@@ -117,7 +149,11 @@ export async function deleteInvestment(id: string): Promise<boolean> {
   data.investments = data.investments.filter((investment: Investment) => investment.id !== id);
 
   if (data.investments.length === initialLength) return false;
-  return await writeDataAsync(investmentsPath, data);
+  const success = await writeDataAsync(investmentsPath, data);
+  if (success) {
+    revalidateTag('investments');
+  }
+  return success;
 }
 
 // Investment submission functions
@@ -157,20 +193,49 @@ export async function reviewInvestment(
 }
 
 // User functions
-export async function getUsers(): Promise<User[]> {
-  const data = await readDataAsync<{ users: User[] }>(usersPath);
-  return data ? data.users : [];
-}
+export const getUsers = nextCache(
+  async (): Promise<User[]> => {
+    const data = await readDataAsync<{ users: User[] }>(usersPath);
+    // Important: Filter out sensitive data if not already done by API handlers before caching
+    // For now, assuming API handlers are responsible for stripping passwords.
+    // If users data contains sensitive fields, they should be removed here before caching.
+    return data ? data.users.map(user => {
+      const { password, ...userWithoutPassword } = user; // Example: removing password
+      return userWithoutPassword as User; // Adjust type if password is not optional
+    }) : [];
+  },
+  ['users-all'],
+  {
+    revalidate: 60,
+    tags: ['users'],
+  }
+);
 
-export async function getUserById(id: string): Promise<User | undefined> {
-  const users = await getUsers();
-  return users.find((user: User) => user.id === id);
-}
+export const getUserById = nextCache(
+  async (id: string): Promise<User | undefined> => {
+    const users = await getUsers(); // getUsers will return cached, password-stripped users
+    return users.find((user: User) => user.id === id);
+  },
+  ['user-by-id'],
+  {
+    revalidate: 120,
+    tags: ['users'], // Simplified tag
+  }
+);
+// Removed getUserByIdTag
 
-export async function getUserByEmail(email: string): Promise<User | undefined> {
-  const users = await getUsers();
-  return users.find((user: User) => user.email === email);
-}
+export const getUserByEmail = nextCache(
+  async (email: string): Promise<User | undefined> => {
+    const users = await getUsers(); // getUsers will return cached, password-stripped users
+    return users.find((user: User) => user.email === email);
+  },
+  ['user-by-email'], // Key includes email implicitly
+  {
+    revalidate: 120,
+    tags: ['users'], // Revalidate all users if one changes by email (simplification)
+  }
+);
+// Removed getUserByEmailTag
 
 export async function createUser(user: Partial<User>): Promise<boolean> {
   const data = await readDataAsync<{ users: User[] }>(usersPath);
@@ -187,23 +252,35 @@ export async function createUser(user: Partial<User>): Promise<boolean> {
   user.updatedAt = now;
 
   data.users.push(user as User);
-  return await writeDataAsync(usersPath, data);
+  const success = await writeDataAsync(usersPath, data);
+  if (success) {
+    revalidateTag('users');
+  }
+  return success;
 }
 
-export async function updateUser(id: string, updatedUser: Partial<User>): Promise<boolean> {
+export async function updateUser(id: string, updatedUser: Partial<User>): Promise<User | null> {
   const data = await readDataAsync<{ users: User[] }>(usersPath);
-  if (!data) return false;
+  if (!data) return null;
 
   const index = data.users.findIndex((user: User) => user.id === id);
-  if (index === -1) return false;
+  if (index === -1) return null;
 
   // Update the timestamp
   updatedUser.updatedAt = new Date().toISOString();
   // Preserve the creation date
   updatedUser.createdAt = data.users[index].createdAt;
 
-  data.users[index] = { ...data.users[index], ...updatedUser };
-  return await writeDataAsync(usersPath, data);
+  // Ensure all fields of User are present, even if updatedUser is partial
+  const userToUpdate = { ...data.users[index], ...updatedUser };
+  data.users[index] = userToUpdate;
+
+  const success = await writeDataAsync(usersPath, data);
+  if (success) {
+    revalidateTag('users');
+    // revalidateTag(getUserByIdTag(id)); // If specific item revalidation was set up
+  }
+  return success ? userToUpdate : null;
 }
 
 export async function deleteUser(id: string): Promise<boolean> {
@@ -214,19 +291,38 @@ export async function deleteUser(id: string): Promise<boolean> {
   data.users = data.users.filter((user: User) => user.id !== id);
 
   if (data.users.length === initialLength) return false;
-  return await writeDataAsync(usersPath, data);
+  const success = await writeDataAsync(usersPath, data);
+  if (success) {
+    revalidateTag('users');
+  }
+  return success;
 }
 
 // Lead functions
-export async function getLeads(): Promise<Lead[]> {
-  const data = await readDataAsync<{ leads: Lead[] }>(leadsPath);
-  return data ? data.leads : [];
-}
+export const getLeads = nextCache(
+  async (): Promise<Lead[]> => {
+    const data = await readDataAsync<{ leads: Lead[] }>(leadsPath);
+    return data ? data.leads : [];
+  },
+  ['leads-all'],
+  {
+    revalidate: 30, // Leads might be more dynamic
+    tags: ['leads'],
+  }
+);
 
-export async function getLeadById(id: string): Promise<Lead | undefined> {
-  const leads = await getLeads();
-  return leads.find((lead: Lead) => lead.id === id);
-}
+export const getLeadById = nextCache(
+  async (id: string): Promise<Lead | undefined> => {
+    const leads = await getLeads();
+    return leads.find((lead: Lead) => lead.id === id);
+  },
+  ['lead-by-id'],
+  {
+    revalidate: 60,
+    tags: ['leads'], // Simplified tag
+  }
+);
+// Removed getLeadByIdTag
 
 export async function createLead(lead: Partial<Lead>): Promise<boolean> {
   const data = await readDataAsync<{ leads: Lead[] }>(leadsPath);
@@ -241,7 +337,11 @@ export async function createLead(lead: Partial<Lead>): Promise<boolean> {
   lead.createdAt = new Date().toISOString();
 
   data.leads.push(lead as Lead);
-  return await writeDataAsync(leadsPath, data);
+  const success = await writeDataAsync(leadsPath, data);
+  if (success) {
+    revalidateTag('leads');
+  }
+  return success;
 }
 
 export async function deleteLead(id: string): Promise<boolean> {
@@ -252,5 +352,9 @@ export async function deleteLead(id: string): Promise<boolean> {
   data.leads = data.leads.filter((lead: Lead) => lead.id !== id);
 
   if (data.leads.length === initialLength) return false;
-  return await writeDataAsync(leadsPath, data);
+  const success = await writeDataAsync(leadsPath, data);
+  if (success) {
+    revalidateTag('leads');
+  }
+  return success;
 }

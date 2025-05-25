@@ -14,8 +14,13 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    const leads = await getLeads();
-    return createSuccessResponse({ leads });
+    const leads = await getLeads(); // This uses the server-cached version
+    return createSuccessResponse(
+      { leads },
+      200,
+      // Leads might be more sensitive or frequently updated, shorter cache time
+      { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' } 
+    );
   } catch (error) {
     logError(error as Error, { context: 'Fetching all leads' });
     return createErrorResponse(
